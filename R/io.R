@@ -350,6 +350,7 @@ parseSA <- function(linevec, datalist, SAid, SSid, SAparentid=NA, verbose=F){
     print(paste("Reading SA", SAid))
   }
   linevec[linevec==""]<-NA
+
   dt <- data.table(SAid=as.integer(SAid),
                    SAparentid=as.integer(SAparentid),
                    SSid=as.integer(SSid),
@@ -567,6 +568,16 @@ parseRDBESexchangeH5 <- function(filename, verbose=F){
   }
 
   return(datalist)
+}
+
+#' Flatten RDBES
+#' @param datalist RDBES v 1.17 as parsed by functions in this file
+#' @return data.table
+#' @noRd
+#' @keywords internal
+flattenRDBES <- function(datalist){
+  BV <- datalist$BV
+  stop("Not implemented")
 }
 
 #' Export to csv
