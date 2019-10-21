@@ -1,0 +1,15 @@
+Package: prepRECA
+Type: Package
+Title: Prepares data for running R-ECA
+Version: 0.1.0
+Author: Edvin Fuglebakk
+Maintainer: Edvin Fuglebakk <Edvin.Fuglebakk@hi.no>
+Description: Generic methods for facilitating running R-ECA
+    The R-ECA package for estimating catch at age is designed as a bare-bones package for minimal restrictions on data sources, and maximal flexibility in model configuration.
+    This package provides convenient routines for preparing data for common R-ECA use cases and common data-models used in fisheries science.
+License: LGPL
+Encoding: UTF-8
+LazyData: true
+Suggests: 
+    testthat
+RoxygenNote: 6.1.1
