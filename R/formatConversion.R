@@ -31,7 +31,10 @@ getSubPolygon <- function(omr, loc){
 #' @noRd
 #' @keywords internal
 getLandingCategory <- function(anvendelse){
-  return(NA)
+  if (!all(anvendelse[!is.na(anvendelse)] %in% conversionTables$landingCategoryCodes$anvhgr)){
+    stop("Some landing category not supported")
+  }
+  return(unlist(conversionTables$landingCategoryCodes[match(anvendelse, conversionTables$landingCategoryCodes$anvhgr),"landingCategory"]))
 }
 
 #' @noRd
@@ -49,8 +52,26 @@ getMetier6 <- function(lss){
 #' @noRd
 #' @keywords internal
 getVesselLengthCategory <- function(storste_lengde){
-  return(NA)
+
+  if (is.na(storste_lengde)){
+    return(NA)
+  }
+
+  if (storste_lengde < 12){
+    return("VL0012")
+  }
+  else if (storste_lengde < 24){
+    return("VL1224")
+  }
+  else if (storste_lengde < 40){
+    return("VL2440")
+  }
+  else{
+    return("VL40XX")
+  }
+
 }
+getVesselLengthCategory <- Vectorize(getVesselLengthCategory)
 
 #' Convert landings data to data.table with columns matching RDB CL
 #' @param landingLss landings to export formatted according to the LSS format provided by the Norwegian Directorate of Fisheries.
@@ -58,7 +79,7 @@ getVesselLengthCategory <- function(storste_lengde){
 #' @noRd
 #' @keywords internal
 convertCL <- function(landingsLss){
-  landingsLss <- merge(landingsLss, speciesCodes[,c("aphia", "FDIR")], by.x="Art - FDIR (kode)", by.y="FDIR", all.x=T)
+  landingsLss <- merge(landingsLss, conversionTables$speciesCodes[,c("aphia", "FDIR")], by.x="Art - FDIR (kode)", by.y="FDIR", all.x=T)
   if (any(is.na(landingsLss$aphia))){
     stop("Incomplete aphia mapping")
   }
@@ -71,7 +92,7 @@ convertCL <- function(landingsLss){
   landingsLss$StatisticalRectangle <- getStatRect(landingsLss$`Hovedområde (kode)`, landingsLss$`Lokasjon (kode)`)
   landingsLss$Subpolygon <- getSubPolygon(landingsLss$`Hovedområde (kode)`, landingsLss$`Lokasjon (kode)`)
   warning("getLandingCategory not implemented")
-  landingsLss$LandingCategory <- getLandingCategory(landingsLss$`Anvendelse (kode)`)
+  landingsLss$LandingCategory <- getLandingCategory(landingsLss$`Anvendelse hovedgruppe (kode)`)
   warning("getMetier5 not implemented")
   landingsLss$FishingActivityCategoryEuropeanLvl5 <- getMetier5(landingsLss)
   warning("getMetier6 not implemented")
@@ -138,9 +159,19 @@ aggregateCL <- function(CLdata){
 #' @noRd
 #' @keywords internal
 create_conversion_tables <- function(){
+  conversionTables <- list()
   speciesCodes <- data.table(aphia=character(), FDIR=character(), FAO=character(), norwegianCommonName=character())
   speciesCodes <- rbind(speciesCodes, data.table(aphia=as.character("126439"), FDIR=as.character("1038"), FAO=as.character("WHB"), norwegianCommonName=as.character("Kolmule")))
   speciesCodes <- rbind(speciesCodes, data.table(aphia=as.character("126417"), FDIR=as.character("061101"), FAO=as.character("HER"), norwegianCommonName=as.character("Norsk vårgytende sild")))
   speciesCodes <- rbind(speciesCodes, data.table(aphia=as.character("126735"), FDIR=as.character("075101"), FAO=as.character("CAP"), norwegianCommonName=as.character("Barentshavslodde")))
-  usethis::use_data(speciesCodes, internal = T, overwrite = T)
+  conversionTables$speciesCodes <- speciesCodes
+
+  landingCategoryCodes <- data.table(anvhgr=integer(), landingCategory=character(), norwegianLandingCategryName=character())
+  landingCategoryCodes <- rbind(landingCategoryCodes, data.table(anvhgr=as.integer(1), landingCategory=as.character("HUC"), norwegianLandingCategryName=as.character("Konsum")))
+  landingCategoryCodes <- rbind(landingCategoryCodes, data.table(anvhgr=as.integer(2), landingCategory=as.character("IND"), norwegianLandingCategryName=as.character("Mel og olje")))
+  landingCategoryCodes <- rbind(landingCategoryCodes, data.table(anvhgr=as.integer(3), landingCategory=as.character("IND"), norwegianLandingCategryName=as.character("Dyrefor/fiskefor, agn og annet")))
+  conversionTables$landingCategoryCodes <- landingCategoryCodes
+
+  return(conversionTables)
 }
+
