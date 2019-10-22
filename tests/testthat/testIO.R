@@ -1,4 +1,9 @@
 
+#
+# Parsing H13
+#
+
+
 context("parseRDBESexchange h13: read")
 data <- parseRDBESexchangeH13(system.file("testresources","herringlottery_trimmed_H13.csv", package="prepRECA"))
 expectedtables <- c("BV", "SA", "SS", "SL", "FO", "SD", "DE")
@@ -44,6 +49,11 @@ expect_true(all(data$FO$FOselectMeth=="SRSWR"))
 
 context("parseRDBESexchange h13: SS SL relation")
 expect_true(all(data$SS$SSid == data$SL$SLid ))
+
+
+#
+# Parsing H5
+#
 
 context("parseRDBESexchange h5: read")
 data <- parseRDBESexchangeH5(system.file("testresources","portsampling_trimmed_H5.csv", package="prepRECA"))
