@@ -91,13 +91,11 @@ convertCL <- function(landingsLss){
   warning("getStatRect not implemented")
   landingsLss$StatisticalRectangle <- getStatRect(landingsLss$`Hovedområde (kode)`, landingsLss$`Lokasjon (kode)`)
   landingsLss$Subpolygon <- getSubPolygon(landingsLss$`Hovedområde (kode)`, landingsLss$`Lokasjon (kode)`)
-  warning("getLandingCategory not implemented")
   landingsLss$LandingCategory <- getLandingCategory(landingsLss$`Anvendelse hovedgruppe (kode)`)
   warning("getMetier5 not implemented")
   landingsLss$FishingActivityCategoryEuropeanLvl5 <- getMetier5(landingsLss)
   warning("getMetier6 not implemented")
   landingsLss$FishingActivityCategoryEuropeanLvl6 <- getMetier6(landingsLss)
-  warning("getVesselLengthCategory not implemented")
   landingsLss$VesselLengthCategory <- getVesselLengthCategory(landingsLss$`Største lengde`)
 
   #add inn constant columns
@@ -171,6 +169,13 @@ create_conversion_tables <- function(){
   landingCategoryCodes <- rbind(landingCategoryCodes, data.table(anvhgr=as.integer(2), landingCategory=as.character("IND"), norwegianLandingCategryName=as.character("Mel og olje")))
   landingCategoryCodes <- rbind(landingCategoryCodes, data.table(anvhgr=as.integer(3), landingCategory=as.character("IND"), norwegianLandingCategryName=as.character("Dyrefor/fiskefor, agn og annet")))
   conversionTables$landingCategoryCodes <- landingCategoryCodes
+
+  # load shapefiles
+  # impute positions area -loc
+  # impute 0-loc based on area
+  # save area-loc to area map
+  # save area-loc to StatRec map for non 0-loc
+
 
   return(conversionTables)
 }
