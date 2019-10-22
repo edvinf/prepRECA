@@ -10,6 +10,7 @@ Description: Generic methods for facilitating running R-ECA
 License: LGPL
 Encoding: UTF-8
 LazyData: true
+Imports: data.table, readr
 Suggests: 
     testthat
 RoxygenNote: 6.1.1

@@ -93,3 +93,11 @@ expect_true(all(data$OS$OSselectMeth=="NPEJ"))
 expect_true(all(data$LE$LEselectMeth=="NPEJ"))
 expect_true(all(!is.na(data$VD$VDencrCode)))
 expect_true(all(is.na(data$SA$SAlowHierarchy) | data$SA$SAlowHierarchy == "C"))
+
+#
+# Parsing LSS
+#
+data <- parseLSS(system.file("testresources","landings_trimmed_2018.lss", package="prepRECA"))
+expect_true("Landingsmåte" %in% names(data))
+expect_true(all(!is.na(data$`Art - FDIR`)))
+expect_equal(nrow(data),9)

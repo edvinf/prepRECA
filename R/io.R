@@ -601,3 +601,18 @@ exportCsv <- function(data, targetdir, overwrite=F){
     write.csv(data[[i]], file=filenames[i], quote = F, row.names = F)
   }
 }
+
+#' Parses landings on the LSS format
+#' @noRd
+#' @keywords internal
+#' @param file file with LSS landings
+#' @return data.table with LSS landings
+#' @import data.table
+#' @import readr
+parseLSS <- function(file){
+  loc <- default_locale()
+  loc$decimal_mark <- ","
+  loc$encoding <- "latin1"
+  db <- read_delim(file, delim="|", col_names=T, trim_ws=TRUE, na=c("", "na", "NA"), locale=loc)
+  return(db)
+}
