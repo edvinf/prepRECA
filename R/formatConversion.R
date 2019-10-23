@@ -37,10 +37,39 @@ getLandingCategory <- function(anvendelse){
   return(unlist(conversionTables$landingCategoryCodes[match(anvendelse, conversionTables$landingCategoryCodes$anvhgr),"landingCategory"]))
 }
 
+#' @param lss lss with aphia annotated
+#' @return lss with column FishingActivityCategoryEuropeanLvl5 added
 #' @noRd
 #' @keywords internal
 getMetier5 <- function(lss){
-  return(NA)
+
+  if (!("aphia" %in% names(lss))){
+    stop("Need aphia annotation")
+  }
+  if (!(all(lss$`Redskap (kode)` %in% conversionTables$gearCodes$FDIRgear))){
+    stop("Mappng not defined for all gears")
+  }
+
+  lss <- merge(lss, conversionTables$gearCodes, by.x="Redskap (kode)", by.y="FDIRgear", all.x=T)
+
+
+  if (any(lss$aphia %in% conversionTables$speciesGearAssemblage$aphia)){
+    lsswGdep <- lss[,lss$aphia %in% conversionTables$speciesGearAssemblage$aphia]
+    if (!all(lsswGdep[["Redksap (kode)"]] %in% conversionTables$speciesGearAssemblage$FDIRgear)){
+      stop("Not all gear specified for species with gear dependent assemblage")
+    }
+    lss <- merge(lss, conversionTables$speciesGearAssemblage, by.x=c("aphia", "Redskap (kode)", by.y=c("aphia", "FDIRgear")), all.x=T)
+    #override any gear dependent assemblage
+    lss[!is.na(lss$gearDepAssemblage), "assemblage"] <- lss[!is.na(lss$gearDepAssemblage), "gearDepAssemblage"]
+  }
+
+  lss <- merge(lss, conversionTables$metierlvl5Codes)
+
+  if (any(is.na(lss$FishingActivityCategoryEuropeanLvl5))){
+    stop("Metier lvl 5 could not be annotated for all landings")
+  }
+
+  return(lss)
 }
 
 #' @noRd
@@ -93,7 +122,7 @@ convertCL <- function(landingsLss){
   landingsLss$Subpolygon <- getSubPolygon(landingsLss$`Hovedområde (kode)`, landingsLss$`Lokasjon (kode)`)
   landingsLss$LandingCategory <- getLandingCategory(landingsLss$`Anvendelse hovedgruppe (kode)`)
   warning("getMetier5 not implemented")
-  landingsLss$FishingActivityCategoryEuropeanLvl5 <- getMetier5(landingsLss)
+  landingsLss <- getMetier5(landingsLss)
   warning("getMetier6 not implemented")
   landingsLss$FishingActivityCategoryEuropeanLvl6 <- getMetier6(landingsLss)
   landingsLss$VesselLengthCategory <- getVesselLengthCategory(landingsLss$`Største lengde`)
@@ -158,10 +187,10 @@ aggregateCL <- function(CLdata){
 #' @keywords internal
 create_conversion_tables <- function(){
   conversionTables <- list()
-  speciesCodes <- data.table(aphia=character(), FDIR=character(), FAO=character(), norwegianCommonName=character())
-  speciesCodes <- rbind(speciesCodes, data.table(aphia=as.character("126439"), FDIR=as.character("1038"), FAO=as.character("WHB"), norwegianCommonName=as.character("Kolmule")))
-  speciesCodes <- rbind(speciesCodes, data.table(aphia=as.character("126417"), FDIR=as.character("061101"), FAO=as.character("HER"), norwegianCommonName=as.character("Norsk vårgytende sild")))
-  speciesCodes <- rbind(speciesCodes, data.table(aphia=as.character("126735"), FDIR=as.character("075101"), FAO=as.character("CAP"), norwegianCommonName=as.character("Barentshavslodde")))
+  speciesCodes <- data.table(aphia=character(), FDIR=character(), FAO=character(), assemblage=character(), norwegianCommonName=character())
+  speciesCodes <- rbind(speciesCodes, data.table(aphia=as.character("126439"), FDIR=as.character("1038"), assemblage=as.character("SPF"), FAO=as.character("WHB"), norwegianCommonName=as.character("Kolmule")))
+  speciesCodes <- rbind(speciesCodes, data.table(aphia=as.character("126417"), FDIR=as.character("061101"), assemblage=as.character("SPF"), FAO=as.character("HER"), norwegianCommonName=as.character("Norsk vårgytende sild")))
+  speciesCodes <- rbind(speciesCodes, data.table(aphia=as.character("126735"), FDIR=as.character("075101"), assemblage=as.character("SPF"), FAO=as.character("CAP"), norwegianCommonName=as.character("Barentshavslodde")))
   conversionTables$speciesCodes <- speciesCodes
 
   landingCategoryCodes <- data.table(anvhgr=integer(), landingCategory=character(), norwegianLandingCategryName=character())
@@ -169,6 +198,20 @@ create_conversion_tables <- function(){
   landingCategoryCodes <- rbind(landingCategoryCodes, data.table(anvhgr=as.integer(2), landingCategory=as.character("IND"), norwegianLandingCategryName=as.character("Mel og olje")))
   landingCategoryCodes <- rbind(landingCategoryCodes, data.table(anvhgr=as.integer(3), landingCategory=as.character("IND"), norwegianLandingCategryName=as.character("Dyrefor/fiskefor, agn og annet")))
   conversionTables$landingCategoryCodes <- landingCategoryCodes
+
+  gearCodes <- data.table(FDIRgear=integer(), FAO1980gear=character(), norwegianGearName=character())
+  gearCodes <- rbind(gearCodes, data.table(FDIRgear=as.integer(53), FAO1980gear=as.character("OTM"), norwegianGearName=as.character("Flytetrål")))
+  gearCodes <- rbind(gearCodes, data.table(FDIRgear=as.integer(11), FAO1980gear=as.character("PS"), norwegianGearName=as.character("Snurpenot/ringnot")))
+  conversionTables$gearCodes <- gearCodes
+
+  # add species with assemblage dependence on FAO gear, assume all others are defined by assembalge in species codes
+  speciesGearAssemblage <- data.table(aphia=character(), FDIRgear=integer(), gearDepAssemblage=character())
+  conversionTables$speciesGearAssemblage <- speciesGearAssemblage
+
+  metierlvl5Codes <- data.table(assemblage=character(), FAO1980gear=character(), FishingActivityCategoryEuropeanLvl5=character())
+  metierlvl5Codes <- rbind(metierlvl5Codes, data.table(assemblage=as.character("SPF"), FAO1980gear=as.character("OTM"), FishingActivityCategoryEuropeanLvl5=as.character("OTM_SPF")))
+  metierlvl5Codes <- rbind(metierlvl5Codes, data.table(assemblage=as.character("SPF"), FAO1980gear=as.character("PS"), FishingActivityCategoryEuropeanLvl5=as.character("PS_SPF")))
+  conversionTables$metierlvl5Codes <- metierlvl5Codes
 
   # load shapefiles
   # impute positions area -loc
@@ -179,4 +222,5 @@ create_conversion_tables <- function(){
 
   return(conversionTables)
 }
-
+#conversionTables <- create_conversion_tables()
+#usethis::use_data(conversionTables, internal = T, overwrite = T)

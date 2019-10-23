@@ -10,6 +10,7 @@ expect_equal(sum(conv$OfficialLandingsWeight), sum(data$Rundvekt))
 expect_true(all(!is.na(conv$OfficialLandingsWeight)))
 expect_true(all(!is.na(conv$Quarter)))
 expect_true(all(!is.na(conv$Month)))
+expect_true(all(!is.na(conv$FishingActivityCategoryEuropeanLvl5)))
 
 context("aggregateCL: clean run")
 agg <- aggregateCL(conv)
