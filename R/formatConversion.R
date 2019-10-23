@@ -125,6 +125,7 @@ convertCL <- function(landingsLss){
   landingsLss <- getAreas(landingsLss)
   landingsLss$Subpolygon <- getSubPolygon(landingsLss$`Hovedområde (kode)`, landingsLss$`Lokasjon (kode)`)
   landingsLss$LandingCategory <- getLandingCategory(landingsLss$`Anvendelse hovedgruppe (kode)`)
+  warning("target assemblage not properly implemented")
   landingsLss <- getMetier5(landingsLss)
   warning("getMetier6 not implemented")
   landingsLss$FishingActivityCategoryEuropeanLvl6 <- getMetier6(landingsLss)
