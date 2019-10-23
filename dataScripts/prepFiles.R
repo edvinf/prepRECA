@@ -1,5 +1,6 @@
 library(data.table)
 library(rgdal)
+library(prepRECA)
 #' Create conversion tables for LSS -> RDB conversion
 #' Relies on resources external to the package. Used for updating internal tables (R/sysdata.R):
 #'  conversionTables <- create_conversion_tables()
@@ -130,13 +131,13 @@ create_conversion_tables <- function(){
 #' @noRd
 #' @keywords internal
 prepLandings_COD_HAD_2018 <- function(file){
-  landings <- parseLSS(file)
+  landings <- prepRECA:::parseLSS(file)
   lset <- landings[landings$`Art - FDIR (kode)` %in% c("1022", "102201", "102202", "102203", "102204","1027", "102701", "102702", "102703", "102704"),]
   lset <- lset[lset$`Fartøynasjonalitet (kode)` == "NOR",]
   lset <- lset[lset$`Redskap (kode)`!=90,] #removed farmed fish
   lset <- lset[lset$`Hovedområde (kode)`!="81",] #remove landings in NAFO area
-  clset <- convertCL(lset)
-  clagg <- aggregateCL(clset)
+  clset <- prepRECA:::convertCL(lset)
+  clagg <- prepRECA:::aggregateCL(clset)
   return(clagg)
 }
 
@@ -148,7 +149,7 @@ prepLandings_COD_HAD_2018 <- function(file){
 #' @noRd
 #' @keywords internal
 prepData_portsampling_2018 <- function(file){
-  portsampling <- parseRDBESexchangeH5(file)
+  portsampling <- prepRECA:::parseRDBESexchangeH5(file)
 
   #
   # fix metier setting here for now (fix in rdbes export)
