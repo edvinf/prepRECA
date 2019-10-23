@@ -141,7 +141,7 @@ prepLandings_COD_HAD_2018 <- function(file){
 
 #' Prep example data
 #' Relies on resources external to the package. Used for updating example data
-#' NORportsampling2018 <- prepData_portsampling_2018("~/cod")
+#' NORportsampling2018 <- prepData_portsampling_2018("~/code/github/rdbes_1.17.pop/portsampling_H5.csv")
 #' usethis::use_data(NORportsampling2018, overwrite=T)
 #' @param file file with portsampling for 2018 formatted as RDBES v 1.17
 #' @noRd
