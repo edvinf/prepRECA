@@ -1,3 +1,7 @@
+#
+# Move out of package to avoid non-ASCII characters (from LSS format) ?
+#
+
 #' @noRd
 #' @keywords internal
 getMonth <- function(date){
