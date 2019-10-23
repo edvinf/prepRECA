@@ -65,7 +65,7 @@ getMetier5 <- function(lss){
     lss[!is.na(lss$gearDepAssemblage), "assemblage"] <- lss[!is.na(lss$gearDepAssemblage), "gearDepAssemblage"]
   }
 
-  lss <- merge(lss, conversionTables$metierlvl5Codes, all.x=T)
+  lss <- merge(lss, conversionTables$metierlvl5Codes, by.x=c("FAO1980gear", "assemblage"), by.y=c("FAO1980gear", "assemblage"), all.x=T)
 
   if (any(is.na(lss$FishingActivityCategoryEuropeanLvl5))){
     stop("Metier lvl 5 could not be annotated for all landings")
@@ -110,7 +110,8 @@ getVesselLengthCategory <- Vectorize(getVesselLengthCategory)
 #' @noRd
 #' @keywords internal
 convertCL <- function(landingsLss){
-  landingsLss <- merge(landingsLss, conversionTables$speciesCodes[,c("aphia", "FDIR")], by.x="Art - FDIR (kode)", by.y="FDIR", all.x=T)
+
+  landingsLss <- merge(landingsLss, conversionTables$speciesCodes[,c("aphia", "FDIR", "assemblage")], by.x="Art - FDIR (kode)", by.y="FDIR", all.x=T)
   if (any(is.na(landingsLss$aphia))){
     stop("Incomplete aphia mapping")
   }
