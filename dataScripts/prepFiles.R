@@ -1,3 +1,5 @@
+library(data.table)
+library(rgdal)
 #' Create conversion tables for LSS -> RDB conversion
 #' Relies on resources external to the package. Used for updating internal tables (R/sysdata.R):
 #'  conversionTables <- create_conversion_tables()
@@ -91,7 +93,6 @@ create_conversion_tables <- function(){
   conversionTables$metierlvl5Codes <- metierlvl5Codes
 
   # load shapefiles
-  require("rgdal")
   lokshapes <- readOGR("~/shapefiles/fdir/fdir_annotated/Lokasjoner_fom_2018/", "Lok_2018")
   ll <- coordinates(lokshapes)
   lokcoordinates <- data.table(longitude=ll[,1], latitude=ll[,2])
