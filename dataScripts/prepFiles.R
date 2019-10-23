@@ -166,3 +166,12 @@ prepData_portsampling_2018 <- function(file){
 
   return(newPortsampling)
 }
+
+conversionTables <- create_conversion_tables()
+usethis::use_data(conversionTables, internal = T, overwrite = T)
+
+CLCodHadNOR <- prepLandings_COD_HAD_2018("~/landingsets/LSS/FDIR_HI_LSS_FANGST_2018_PR_2019-04-02.psv")
+usethis::use_data(CLCodHadNOR, overwrite=T)
+
+NORportsampling2018 <- prepData_portsampling_2018("inst/exampledata/portsampling_H5.csv")
+usethis::use_data(NORportsampling2018, overwrite=T)
