@@ -65,7 +65,7 @@ getMetier5 <- function(lss){
     lss[!is.na(lss$gearDepAssemblage), "assemblage"] <- lss[!is.na(lss$gearDepAssemblage), "gearDepAssemblage"]
   }
 
-  lss <- merge(lss, conversionTables$metierlvl5Codes)
+  lss <- merge(lss, conversionTables$metierlvl5Codes, all.x=T)
 
   if (any(is.na(lss$FishingActivityCategoryEuropeanLvl5))){
     stop("Metier lvl 5 could not be annotated for all landings")
@@ -178,60 +178,4 @@ aggregateCL <- function(CLdata){
   }
 
   return(as.data.table(tab))
-}
-
-#' Create conversion tables for LSS -> RDB conversion
-#' Relies on resources external to the package. Used for updating internal tables (R/sysdata.R):
-#'  conversionTables <- create_conversion_tables()
-#'  usethis::use_data(conversionTables, internal = T, overwrite = T)
-#' @noRd
-#' @keywords internal
-create_conversion_tables <- function(){
-  conversionTables <- list()
-  speciesCodes <- data.table(aphia=character(), FDIR=character(), FAO=character(), assemblage=character(), norwegianCommonName=character())
-  speciesCodes <- rbind(speciesCodes, data.table(aphia=as.character("126439"), FDIR=as.character("1038"), assemblage=as.character("SPF"), FAO=as.character("WHB"), norwegianCommonName=as.character("Kolmule")))
-  speciesCodes <- rbind(speciesCodes, data.table(aphia=as.character("126417"), FDIR=as.character("061101"), assemblage=as.character("SPF"), FAO=as.character("HER"), norwegianCommonName=as.character("Norsk vårgytende sild")))
-  speciesCodes <- rbind(speciesCodes, data.table(aphia=as.character("126735"), FDIR=as.character("075101"), assemblage=as.character("SPF"), FAO=as.character("CAP"), norwegianCommonName=as.character("Barentshavslodde")))
-  conversionTables$speciesCodes <- speciesCodes
-
-  landingCategoryCodes <- data.table(anvhgr=integer(), landingCategory=character(), norwegianLandingCategryName=character())
-  landingCategoryCodes <- rbind(landingCategoryCodes, data.table(anvhgr=as.integer(1), landingCategory=as.character("HUC"), norwegianLandingCategryName=as.character("Konsum")))
-  landingCategoryCodes <- rbind(landingCategoryCodes, data.table(anvhgr=as.integer(2), landingCategory=as.character("IND"), norwegianLandingCategryName=as.character("Mel og olje")))
-  landingCategoryCodes <- rbind(landingCategoryCodes, data.table(anvhgr=as.integer(3), landingCategory=as.character("IND"), norwegianLandingCategryName=as.character("Dyrefor/fiskefor, agn og annet")))
-  conversionTables$landingCategoryCodes <- landingCategoryCodes
-
-  gearCodes <- data.table(FDIRgear=integer(), FAO1980gear=character(), norwegianGearName=character())
-  gearCodes <- rbind(gearCodes, data.table(FDIRgear=as.integer(53), FAO1980gear=as.character("OTM"), norwegianGearName=as.character("Flytetrål")))
-  gearCodes <- rbind(gearCodes, data.table(FDIRgear=as.integer(11), FAO1980gear=as.character("PS"), norwegianGearName=as.character("Snurpenot/ringnot")))
-  conversionTables$gearCodes <- gearCodes
-
-  # add species with assemblage dependence on FAO gear, assume all others are defined by assembalge in species codes
-  speciesGearAssemblage <- data.table(aphia=character(), FDIRgear=integer(), gearDepAssemblage=character())
-  conversionTables$speciesGearAssemblage <- speciesGearAssemblage
-
-  metierlvl5Codes <- data.table(assemblage=character(), FAO1980gear=character(), FishingActivityCategoryEuropeanLvl5=character())
-  metierlvl5Codes <- rbind(metierlvl5Codes, data.table(assemblage=as.character("SPF"), FAO1980gear=as.character("OTM"), FishingActivityCategoryEuropeanLvl5=as.character("OTM_SPF")))
-  metierlvl5Codes <- rbind(metierlvl5Codes, data.table(assemblage=as.character("SPF"), FAO1980gear=as.character("PS"), FishingActivityCategoryEuropeanLvl5=as.character("PS_SPF")))
-  conversionTables$metierlvl5Codes <- metierlvl5Codes
-
-  # load shapefiles
-  require("rgdal")
-  lokshapes <- readOGR("~/shapefiles/fdir/fdir_annotated/Lokasjoner_fom_2018/", "Lok_2018")
-  ll <- coordinates(lokshapes)
-  lokcoordinates <- data.table(longitude=ll[,1], latitude=ll[,2])
-  lokcoordinates$lokid <- lokshapes$lok
-  lokcoordinates$lokasjon <- lokshapes$Lokasjon
-  lokcoordinates$Homr <- lokshapes$HAVOMR
-
-  llsp <- SpatialPoints(ll, proj4string = CRS(proj4string(lokshapes)))
-  ICESarea <- readOGR("~/shapefiles/ICES_StatRec_mapto_ICES_Areas", "StatRec_map_Areas_Full_20170124")
-  overl <- over(llsp, ICESarea, returnList=F)
-  lokcoordinates$ICESArea <- paste("27", overl$Area_27, sep=".")
-  lokcoordinates$StatRect <- overl$ICESNAME
-  conversionTables$areaCodes <- lokcoordinates
-  # impute 0-loc based on area
-
-
-
-  return(conversionTables)
 }
