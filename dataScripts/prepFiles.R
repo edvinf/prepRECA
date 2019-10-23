@@ -122,6 +122,7 @@ create_conversion_tables <- function(){
 }
 
 #' Prep CL example
+#' Relies on resources external to the package. Used for updating example data
 #' CLCodHadNOR <- prepLandings_COD_HAD_2018("~/landingsets/LSS/FDIR_HI_LSS_FANGST_2018_PR_2019-04-02.psv")
 #' usethis::use_data(CLCodHadNOR, overwrite=T)
 #' @param file file with LSS all landings 2018
@@ -139,7 +140,8 @@ prepLandings_COD_HAD_2018 <- function(file){
 }
 
 #' Prep example data
-#' NORportsampling2018 <- prepData_portsampling_2018("inst/exampledata/portsampling_H5.csv")
+#' Relies on resources external to the package. Used for updating example data
+#' NORportsampling2018 <- prepData_portsampling_2018("~/cod")
 #' usethis::use_data(NORportsampling2018, overwrite=T)
 #' @param file file with portsampling for 2018 formatted as RDBES v 1.17
 #' @noRd
@@ -167,11 +169,15 @@ prepData_portsampling_2018 <- function(file){
   return(newPortsampling)
 }
 
+#
+# Update data
+#
+
 conversionTables <- create_conversion_tables()
 usethis::use_data(conversionTables, internal = T, overwrite = T)
 
 CLCodHadNOR <- prepLandings_COD_HAD_2018("~/landingsets/LSS/FDIR_HI_LSS_FANGST_2018_PR_2019-04-02.psv")
 usethis::use_data(CLCodHadNOR, overwrite=T)
 
-NORportsampling2018 <- prepData_portsampling_2018("inst/exampledata/portsampling_H5.csv")
+NORportsampling2018 <- prepData_portsampling_2018("~/code/github/rdbes_1.17.pop/portsampling_H5.csv")
 usethis::use_data(NORportsampling2018, overwrite=T)
