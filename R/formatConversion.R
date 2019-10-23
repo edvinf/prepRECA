@@ -12,14 +12,16 @@ getQuarter <- function(month){
 
 #' @noRd
 #' @keywords internal
-getArea <- function(omr, loc){
-  return(NA)
-}
-
-#' @noRd
-#' @keywords internal
-getStatRect <- function(omr, loc){
-  return(NA)
+#' @return LSS with area annotation
+getAreas <- function(lss){
+  if (!all(lss$`Hovedområde (kode)` %in% conversionTables$areaCodes$Homr)){
+    stop("Area mapping not provided for all areas")
+  }
+  if (!all(lss$`Lokasjon (kode)` %in% conversionTables$areaCodes$lokasjon)){
+    stop("Area mapping not provided for all locations")
+  }
+  lss <- merge(lss, conversionTables$areaCodes, by.x=c("Hovedområde (kode)", "Lokasjon (kode)"), by.y=c("Homr", "lokasjon"))
+  return(lss)
 }
 
 #' @noRd
@@ -115,13 +117,9 @@ convertCL <- function(landingsLss){
 
   landingsLss$Month <- getMonth(landingsLss$`Siste fangstdato`)
   landingsLss$Quarter <- getQuarter(landingsLss$Month)
-  warning("getArea not implemented")
-  landingsLss$Area <- getArea(landingsLss$`Hovedområde (kode)`, landingsLss$`Lokasjon (kode)`)
-  warning("getStatRect not implemented")
-  landingsLss$StatisticalRectangle <- getStatRect(landingsLss$`Hovedområde (kode)`, landingsLss$`Lokasjon (kode)`)
+  landingsLss <- getAreas(landingsLss)
   landingsLss$Subpolygon <- getSubPolygon(landingsLss$`Hovedområde (kode)`, landingsLss$`Lokasjon (kode)`)
   landingsLss$LandingCategory <- getLandingCategory(landingsLss$`Anvendelse hovedgruppe (kode)`)
-  warning("getMetier5 not implemented")
   landingsLss <- getMetier5(landingsLss)
   warning("getMetier6 not implemented")
   landingsLss$FishingActivityCategoryEuropeanLvl6 <- getMetier6(landingsLss)
@@ -137,8 +135,8 @@ convertCL <- function(landingsLss){
   landingsLss$LandingsMultiplier <- 1
   landingsLss$OfficialLandingsValue <- NA
 
-  lssNames <- c("Landingsnasjon (kode)", "Fartøynasjonalitet (kode)","Fangstår", "Quarter", "Month","Area","Subpolygon", "aphia", "LandingCategory", "CommercialSizeCategoryScale","CommercialSizeCategory","FishingActivityCategoryNational", "FishingActivityCategoryEuropeanLvl5", "FishingActivityCategoryEuropeanLvl6", "Harbour", "VesselLengthCategory", "UnallocatedCatchWeight", "AreaMisreportedCatchWeight", "Rundvekt", "LandingsMultiplier", "OfficialLandingsValue")
-  rdbNames <- c("LandingCountry", "VesselFlagCountry", "Year", "Quarter", "Month","Area","Subpolygon", "Species", "LandingCategory", "CommercialSizeCategoryScale","CommercialSizeCategory","FishingActivityCategoryNational","FishingActivityCategoryEuropeanLvl5", "FishingActivityCategoryEuropeanLvl6", "Harbour", "VesselLengthCategory", "UnallocatedCatchWeight", "AreaMisreportedCatchWeight", "OfficialLandingsWeight", "LandingsMultiplier", "OfficialLandingsValue")
+  lssNames <- c("Landingsnasjon (kode)", "Fartøynasjonalitet (kode)","Fangstår", "Quarter", "Month","ICESArea","StatRect", "Subpolygon", "aphia", "LandingCategory", "CommercialSizeCategoryScale","CommercialSizeCategory","FishingActivityCategoryNational", "FishingActivityCategoryEuropeanLvl5", "FishingActivityCategoryEuropeanLvl6", "Harbour", "VesselLengthCategory", "UnallocatedCatchWeight", "AreaMisreportedCatchWeight", "Rundvekt", "LandingsMultiplier", "OfficialLandingsValue")
+  rdbNames <- c("LandingCountry", "VesselFlagCountry", "Year", "Quarter", "Month","Area", "StatisticalRectange", "Subpolygon", "Species", "LandingCategory", "CommercialSizeCategoryScale","CommercialSizeCategory","FishingActivityCategoryNational","FishingActivityCategoryEuropeanLvl5", "FishingActivityCategoryEuropeanLvl6", "Harbour", "VesselLengthCategory", "UnallocatedCatchWeight", "AreaMisreportedCatchWeight", "OfficialLandingsWeight", "LandingsMultiplier", "OfficialLandingsValue")
   landingsLss <- landingsLss[,lssNames]
   names(landingsLss) <- rdbNames
   return(landingsLss)
@@ -183,6 +181,9 @@ aggregateCL <- function(CLdata){
 }
 
 #' Create conversion tables for LSS -> RDB conversion
+#' Relies on resources external to the package. Used for updating internal tables (R/sysdata.R):
+#'  conversionTables <- create_conversion_tables()
+#'  usethis::use_data(conversionTables, internal = T, overwrite = T)
 #' @noRd
 #' @keywords internal
 create_conversion_tables <- function(){
@@ -214,13 +215,23 @@ create_conversion_tables <- function(){
   conversionTables$metierlvl5Codes <- metierlvl5Codes
 
   # load shapefiles
-  # impute positions area -loc
+  require("rgdal")
+  lokshapes <- readOGR("~/shapefiles/fdir/fdir_annotated/Lokasjoner_fom_2018/", "Lok_2018")
+  ll <- coordinates(lokshapes)
+  lokcoordinates <- data.table(longitude=ll[,1], latitude=ll[,2])
+  lokcoordinates$lokid <- lokshapes$lok
+  lokcoordinates$lokasjon <- lokshapes$Lokasjon
+  lokcoordinates$Homr <- lokshapes$HAVOMR
+
+  llsp <- SpatialPoints(ll, proj4string = CRS(proj4string(lokshapes)))
+  ICESarea <- readOGR("~/shapefiles/ICES_StatRec_mapto_ICES_Areas", "StatRec_map_Areas_Full_20170124")
+  overl <- over(llsp, ICESarea, returnList=F)
+  lokcoordinates$ICESArea <- paste("27", overl$Area_27, sep=".")
+  lokcoordinates$StatRect <- overl$ICESNAME
+  conversionTables$areaCodes <- lokcoordinates
   # impute 0-loc based on area
-  # save area-loc to area map
-  # save area-loc to StatRec map for non 0-loc
+
 
 
   return(conversionTables)
 }
-#conversionTables <- create_conversion_tables()
-#usethis::use_data(conversionTables, internal = T, overwrite = T)

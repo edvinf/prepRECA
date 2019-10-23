@@ -11,6 +11,7 @@ expect_true(all(!is.na(conv$OfficialLandingsWeight)))
 expect_true(all(!is.na(conv$Quarter)))
 expect_true(all(!is.na(conv$Month)))
 expect_true(all(!is.na(conv$FishingActivityCategoryEuropeanLvl5)))
+expect_true(all(!is.na(conv$Area)))
 
 context("aggregateCL: clean run")
 agg <- aggregateCL(conv)
