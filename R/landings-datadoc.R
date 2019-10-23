@@ -1,12 +1,13 @@
 #' Landings of Cod and Haddock
 #'
-#' Landings of Cod and Haddock by Norwegian vessels in 2018 as reported in salesnotes
+#' Landings of Cod and Haddock by Norwegian vessels in 2018 as reported in salesnotes.
+#' Gear-codes are converted from national standard and should be considered approximate.
 #'
 #' @docType data
 #'
 #' @usage data(CLCodHadNOR)
 #'
-#' @format RDB CL (version 1.3, https://www.ices.dk/marine-data/Documents/RDB/RDB%20Exchange%20Format.pdf)
+#' @format RDB CL-table version 1.3 (\href{https://www.ices.dk/marine-data/Documents/RDB/RDB Exchange Format.pdf}{RDBES exchange format v 1.13})
 #'
 #' @keywords datasets
 #'

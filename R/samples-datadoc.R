@@ -11,7 +11,7 @@
 #'
 #' @usage data(NORportsampling2018)
 #'
-#' @format RDBES data model v 1.17 Hierarchy 5 (https://github.com/ices-tools-dev/RDBES/tree/1a17e09d34d3e9b6bb6173f2b33e10f0830d4cf3)
+#' @format RDBES data model version 1.17 Hierarchy 5 (\href{https://github.com/ices-tools-dev/RDBES/tree/1a17e09d34d3e9b6bb6173f2b33e10f0830d4cf3}{RDBES data model v 1.17})
 #'
 #' @keywords datasets
 #'
@@ -19,3 +19,4 @@
 #' data(NORportsampling2018)
 #' table(NORportsampling2018$SA$SApres)
 "NORportsampling2018"
+
