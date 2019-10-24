@@ -22,4 +22,10 @@ expect_error(extractBV(badBV, c("Age", "Length", "Weight")))
 
 context("test warningsRecaApplicability")
 expect_warning(warningsRecaApplicability(NORportsampling2018$SA))
+expect_warning(warningsRecaApplicability(NORportsampling2018$LE))
+expect_warning(warningsRecaApplicability(NORportsampling2018$OS))
 expect_silent(warningsRecaApplicability(NORportsampling2018$DE))
+badSA <- NORportsampling2018$SA
+badSA$SAstratum[1] <- "Z"
+badSA$SAstratum[2] <- "W"
+expect_warning(warningsRecaApplicability(badSA))

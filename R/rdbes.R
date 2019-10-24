@@ -32,7 +32,7 @@ extractBV <- function(BVtable, BVtypes){
     if (any(duplicated(paste(BVt$BVfishID, BVt$SAid, BVt$FMid)))){
       stop(paste("Can not extract ", t, "as it has duplicate registration for some BVfishID"))
     }
-    if (length(unique((BVt$BVstratification))) > 1){
+    if (length(unique((BVt$BVstratum))) > 1){
       stop(paste("Can not extract ", t, "as it has stratified selection for some BVfishID"))
     }
     BVt <- BVt[,c("SAid", "FMid", "BVfishID", "BVvalue")]
@@ -68,12 +68,21 @@ warningsRecaApplicability <- function(flatRDBES){
     }
   }
 
-  stratificationColumns <- names(flatRDBES)[names(flatRDBES) == "stratification"]
+  stratificationColumns <- names(flatRDBES)[substr(names(flatRDBES),3,9) == "stratum"]
   for (s in stratificationColumns){
-    if (length(unique(flatRDBES[s])) > 1){
-      warning(paste("Sample contains stratified selections, ", s, ": ", paste(unique(flatRDBES[s]), collapse = ","), sep=""))
+    if (length(unique(flatRDBES[[s]])) > 1){
+      warning(paste("Sample contains stratified selections, ", s, ": ", paste(unique(flatRDBES[[s]]), collapse = ","), sep=""))
     }
   }
+
+  clusteringColumns <- names(flatRDBES)[substr(names(flatRDBES),3,13) == "clusterName"]
+  for (s in stratificationColumns){
+    if (length(unique(flatRDBES[[s]])) > 1){
+      warning(paste("Sample contains clustered selections, ", s, ": ", paste(unique(flatRDBES[[s]]), collapse = ","), sep=""))
+    }
+  }
+
+  warning("Implement check for unequal probability sampling")
 
   if ("DEid" %in% flatRDBES){
     if (length(unique(flatRDBES$DEid)) > 1){
