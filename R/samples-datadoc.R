@@ -6,6 +6,7 @@
 #' Vessels are intercepted during landing, and samples of up to 30 fish are taken stratified by gear and species.
 #' Length, weight and age measured for all fish. Sex and maturity when presentation allows for it.
 #' Weight of fish is reported as measured (encoded in SApres), while total weight of landing and sample is converted to Whole-weight using constant factors standardized by the Norwegian Directorate of Fisheries.
+#' \href{https://www.fiskeridir.no/Yrkesfiske/Tall-og-analyse/Omregningsfaktorer}{Conversion factors (in Norwegian)}.
 #'
 #' @docType data
 #'
