@@ -6,6 +6,8 @@
 #' @description
 #'  Reshapes BV table into a data.table with each row corresponding to one measured specimen,
 #'  and the different BV types introduced as individual columns (e.g. age, length weight).
+#'  @details
+#'  Checks and halts for heterogenity in length units, weight untits, length measurements, or BVstratification
 #' @param BVtable data.table() with column names following the RDBES (v 1.17) R-Name specification
 #' @param BVtypes a character() vector identifying the BVtypes to introduce as columns (other record types are discarded)
 #' @return data.table()
@@ -21,14 +23,17 @@ extractBV <- function(BVtable, BVtypes){
 
   for (t in BVtypes){
     BVt <- BVtable[BVtable$BVtype == t,]
-    if (length(unique(BVt$BVunitVal))>1){
+    if (length(unique(BVt$BVunitVal)) > 1){
       stop(paste("Can not extract ", t, "as it is recorded with heterogenous BVunitVal"))
     }
-    if (length(unique(BVt$BVunitRefList))>1){
+    if (length(unique(BVt$BVunitRefList)) > 1){
       stop(paste("Can not extract ", t, "as it is recorded with heterogenous BVunitRefList"))
     }
     if (any(duplicated(paste(BVt$BVfishID, BVt$SAid, BVt$FMid)))){
       stop(paste("Can not extract ", t, "as it has duplicate registration for some BVfishID"))
+    }
+    if (length(unique((BVt$BVstratification))) > 1){
+      stop(paste("Can not extract ", t, "as it has stratified selection for some BVfishID"))
     }
     BVt <- BVt[,c("SAid", "FMid", "BVfishID", "BVvalue")]
     names(BVt) <- c("SAid", "FMid", "BVfishID", t)
@@ -40,83 +45,40 @@ extractBV <- function(BVtable, BVtypes){
   return(extraction)
 }
 
-
-#' Make SApres plot
-#' @noRd
-makeSApresPlot <- function(samples){
-  pres <- table(samples$SA$SApres)
-  pres <- data.table::data.table(pres)
-  names(pres) <- c("SApres", "count")
-  SApres <- ggplot(pres, aes(x="", y=count, fill=SApres))+
-    geom_bar(width = 1, stat = "identity") +
-    coord_polar("y") +
-    theme_minimal() + theme(axis.title.x = element_blank(),
-                            axis.title.y = element_blank(),
-                            panel.border = element_blank())
-  return(SApres)
-}
-
-makeLowHplot <- function(samples){
-  lowh <- table(samples$SA$SAlowHierarchy)
-  lowh <- data.table::data.table(lowh)
-  names(lowh) <- c("SAlowHierarchy", "count")
-  SAlowHierarchy <- ggplot(lowh, aes(x="", y=count, fill=SAlowHierarchy))+
-    geom_bar(width = 1, stat = "identity") +
-    coord_polar("y") +
-    theme_minimal() + theme(axis.title.x = element_blank(),
-                            axis.title.y = element_blank(),
-                            panel.border = element_blank())
-  return(SAlowHierarchy)
-}
-
-makeLengthUnitPlot <- function(sample){
-  lengths <- sample$BV[sample$BV$BVtype=="Length"]
-  units <- table(lengths$BVunitVal)
-  units <- data.table::data.table(units)
-  names(units) <- c("lengthUnit", "count")
-  lengthunits <- ggplot(units, aes(x="", y=count, fill=lengthUnit))+
-    geom_bar(width = 1, stat = "identity") +
-    coord_polar("y") +
-    theme_minimal() + theme(axis.title.x = element_blank(),
-                            axis.title.y = element_blank(),
-                            panel.border = element_blank())
-  return(lengthunits)
-}
-
-makeWeightUnitPlot <- function(sample){
-  lengths <- sample$BV[sample$BV$BVtype=="Weight"]
-  units <- table(lengths$BVunitVal)
-  units <- data.table::data.table(units)
-  names(units) <- c("weightUnit", "count")
-  weightunits <- ggplot(units, aes(x="", y=count, fill=weightUnit))+
-    geom_bar(width = 1, stat = "identity") +
-    coord_polar("y") +
-    theme_minimal() + theme(axis.title.x = element_blank(),
-                            axis.title.y = element_blank(),
-                            panel.border = element_blank())
-  return(weightunits)
-}
-
-#' Plots a summary of samples
+#' Produce warnings for R-ECA
 #' @description
-#'  Plots a paneled plot to reveal heterogeneity i key sampling parameters, important for R-ECA.
-#' @param samples named list() of data.table() members, each named with the RDBES record type, and with column names following the RDBES (v 1.17) R-Name specification
+#'  Checks for common concerns when configuring R-ECA
+#' @details
+#'  Checks for heterogenity in fish presentation
+#'  Checks for stratification
+#'  Checks for multiple sampling programs
+#' @param flatRDBES data.table() with column names following the RDBES (v 1.17) R-Name specification.
 #' @examples
-#' sampleSummaryPlot(NORportsampling2018)
+#' warningsRecaApplicability(NORportsampling2018$SA)
 #' @export
-sampleSummaryPlot <- function(samples){
-  requireNamespace("ggplot2")
-  if (!("SA") %in% names(samples)){
-    stop("No SA table found")
+warningsRecaApplicability <- function(flatRDBES){
+
+  if (!is.data.frame(flatRDBES)){ #true also for data.table
+    stop("checks can only be applied to data frames")
   }
 
-  SApres <- makeSApresPlot(samples)
-  SAlowH <- makeLowHplot(samples)
-  BVlengthUnit <- makeLengthUnitPlot(samples)
-  BVweightUnit <- makeWeightUnitPlot(samples)
+  if ("SApres" %in% names(flatRDBES)){
+    if (length(unique(flatRDBES$SApres)) > 1){
+      warning(paste("Sample contains several presentations, SApres:"), paste(unique(flatRDBES$SApres)), collapse=",")
+    }
+  }
 
-  gridExtra::grid.arrange(SApres, SAlowH, BVlengthUnit, BVweightUnit, ncol=2)
+  stratificationColumns <- names(flatRDBES)[names(flatRDBES) == "stratification"]
+  for (s in stratificationColumns){
+    if (length(unique(flatRDBES[s])) > 1){
+      warning(paste("Sample contains stratified selections, ", s, ": ", paste(unique(flatRDBES[s]), collapse = ","), sep=""))
+    }
+  }
+
+  if ("DEid" %in% flatRDBES){
+    if (length(unique(flatRDBES$DEid)) > 1){
+      warning(paste("Sample contains several sampling scehmes:", paste(unique(flatRDBES$DEid), collapse = ",")))
+    }
+  }
 }
-#PLots
-#sample composition etc
 
