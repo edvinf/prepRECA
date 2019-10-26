@@ -13,10 +13,10 @@ create_conversion_tables <- function(){
   speciesCodes <- rbind(speciesCodes, data.table(aphia=as.character("126439"), FDIR=as.character("1038"), assemblage=as.character("SPF"), FAO=as.character("WHB"), norwegianCommonName=as.character("Kolmule")))
   speciesCodes <- rbind(speciesCodes, data.table(aphia=as.character("126417"), FDIR=as.character("061101"), assemblage=as.character("SPF"), FAO=as.character("HER"), norwegianCommonName=as.character("Norsk vårgytende sild")))
   speciesCodes <- rbind(speciesCodes, data.table(aphia=as.character("126735"), FDIR=as.character("075101"), assemblage=as.character("SPF"), FAO=as.character("CAP"), norwegianCommonName=as.character("Barentshavslodde")))
-  speciesCodes <- rbind(speciesCodes, data.table(aphia=as.character(""), FDIR=as.character("1022"), assemblage=as.character("DEF"), FAO=as.character("COD"), norwegianCommonName=as.character("Torsk")))
-  speciesCodes <- rbind(speciesCodes, data.table(aphia=as.character(""), FDIR=as.character("1027"), assemblage=as.character("DEF"), FAO=as.character("HAD"), norwegianCommonName=as.character("Hyse")))
-  speciesCodes <- rbind(speciesCodes, data.table(aphia=as.character(""), FDIR=as.character("102202"), assemblage=as.character("DEF"), FAO=as.character("COD"), norwegianCommonName=as.character("Nordøstarktisk torsk")))
-  speciesCodes <- rbind(speciesCodes, data.table(aphia=as.character(""), FDIR=as.character("102701"), assemblage=as.character("DEF"), FAO=as.character("HAD"), norwegianCommonName=as.character("Nordøstarktisk hyse")))
+  speciesCodes <- rbind(speciesCodes, data.table(aphia=as.character("126436"), FDIR=as.character("1022"), assemblage=as.character("DEF"), FAO=as.character("COD"), norwegianCommonName=as.character("Torsk")))
+  speciesCodes <- rbind(speciesCodes, data.table(aphia=as.character("126437"), FDIR=as.character("1027"), assemblage=as.character("DEF"), FAO=as.character("HAD"), norwegianCommonName=as.character("Hyse")))
+  speciesCodes <- rbind(speciesCodes, data.table(aphia=as.character("126436"), FDIR=as.character("102202"), assemblage=as.character("DEF"), FAO=as.character("COD"), norwegianCommonName=as.character("Nordøstarktisk torsk")))
+  speciesCodes <- rbind(speciesCodes, data.table(aphia=as.character("126437"), FDIR=as.character("102701"), assemblage=as.character("DEF"), FAO=as.character("HAD"), norwegianCommonName=as.character("Nordøstarktisk hyse")))
   conversionTables$speciesCodes <- speciesCodes
 
   landingCategoryCodes <- data.table(anvhgr=integer(), landingCategory=character(), norwegianLandingCategryName=character())
