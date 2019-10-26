@@ -38,3 +38,8 @@ rEcaDataReport(fishdata, landings)
 
 context("test rEcaDataReport: no covariates")
 expect_error(rEcaDataReport(fsmin, lmin))
+
+context("tets getCovariateMap: simple run")
+map<-getCovariateMap(c("Metier5"), fishdata, landings)
+expect_equal(length(map), length(unique(c(fishdata$Metier5, landings$Metier5))))
+expect_true(map[[1]] %in% landings$Metier5)

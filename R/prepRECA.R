@@ -39,6 +39,29 @@ checkAllSampledCar <- function(landings, samples, fixedeffects, careffect, neigh
   return(T)
 }
 
+#' @noRd
+getCovariateMap <- function(covariate, samples, landings){
+
+  if (!(covariate %in% names(samples))){
+    stop(paste("Covariate", covariate, "not in samples"))
+  }
+
+  values <- unique(samples[[covariate]])
+
+  if (covariate %in% names(landings)){
+    values <- unique(c(values, landings[[covariate]]))
+  }
+
+  map <- list()
+  i <- 1
+  for (v in values){
+    map[i] <- v
+    i <- i + 1
+  }
+
+  return(map)
+}
+
 #' Prepare data for R-ECA
 #' @description
 #'  Checks and reformats data so that it can be fed to R-ECA.
@@ -146,7 +169,10 @@ prepRECA <- function(samples, landings, fixedeffects, randomeffects, careffect, 
     stop(paste("Effect not specified for covariates:", paste(names(landings)[!(names(landings) %in% c(fixedeffects, randomeffects, careffect, c("LiveWeightKG", "midseason")))], collapse=",")))
   }
 
-  # Map covariate levels
+  covariateMaps <- list()
+  for (f in c(fixedeffects, randomeffects, careffect)){
+    covariateMaps[[f]] <- getCovariateMap(f, samples, landings)
+  }
 
   # build eca objects
 
