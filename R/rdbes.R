@@ -64,7 +64,7 @@ warningsRecaApplicability <- function(flatRDBES){
 
   if ("SApres" %in% names(flatRDBES)){
     if (length(unique(flatRDBES$SApres)) > 1){
-      warning(paste("Sample contains several presentations, SApres:"), paste(unique(flatRDBES$SApres)), collapse=",")
+      warning(paste("Sample contains several presentations, SApres:"), paste(unique(flatRDBES$SApres), collapse=","))
     }
   }
 
@@ -82,7 +82,12 @@ warningsRecaApplicability <- function(flatRDBES){
     }
   }
 
-  warning("Implement check for unequal probability sampling")
+  selectionColumns <- names(flattenRDBES)[substr(names(flatRDBES),3,12) == "selectMeth"]
+  for (s in selectionColumns){
+    if (s %in% c("UPSWR", "UPSWOR")){
+      warning(paste("Sample contains unequal probability selection methods (", s, ")"))
+    }
+  }
 
   if ("DEid" %in% flatRDBES){
     if (length(unique(flatRDBES$DEid)) > 1){
@@ -91,3 +96,45 @@ warningsRecaApplicability <- function(flatRDBES){
   }
 }
 
+#' Produce warnings for incomplete data
+#' @description
+#'  Produce warnings for columns with NA values, listing the number of NA values.
+#' @param datatable data.table() to be checked for completeness
+#' @param variables character() vector with variables (column names of datatable) to check for completeness
+#' @export
+warningsDataCompleteness <- function(datatable, variables){
+  for (v in variables){
+    nas <- sum(is.na(datatable[[v]]))
+    if (nas > 0){
+      warning(paste(nas, "NAs out of", nrow(datatable), "records, for variable", v))
+    }
+  }
+}
+
+
+#' Missing data histograms
+#' @description Plots the number and fraction of missing data pr sample (SAid)
+#' @param flatRDBES flatRDBES data.table() with column names following the RDBES (v 1.17) R-Name specification.
+#' @param var variable to plot missing data for (column in flatRDBES)
+#' @example
+#'  ages <- extractBV(NORportsampling2018$BV, c("Age"))
+#'  agesamples <- merge(ages, NORportsampling2018$SA, by="SAid")
+#'  plotSAnas(agesamples, c("Age"))
+plotSAnas <- function(flatRDBES, var){
+  stopifnot("SAid" %in% names(flatRDBES))
+  stopifnot(var %in% names(flatRDBES))
+
+  missingPrSample <- aggregate(list(missing=flatRDBES[[var]]), by=list(SAid=flatRDBES$SAid), FUN=function(x){sum(is.na(x))})
+  missingPrSample <- missingPrSample[missingPrSample$missing>0,]
+  missing <- ggplot(missingPrSample, aes(x=missing)) +
+    geom_histogram(binwidth = 1) +
+    labs(title="Missing data",x=paste(var, "missing"), y = "# samples (SAid)")
+
+  fractionPrSample <- aggregate(list(fraction=flatRDBES[[var]]), by=list(SAid=flatRDBES$SAid), FUN=function(x){100*sum(is.na(x))/length(x)})
+  fractionPrSample <- fractionPrSample[fractionPrSample$fraction>0,]
+  missingFrac <- ggplot(fractionPrSample, aes(x=fraction)) +
+    geom_histogram(binwidth = 5) +
+    labs(title="Missing data",x=paste(var, "missing (%)"), y = "# samples (SAid)")
+
+  gridExtra::grid.arrange(missing, missingFrac, nrow=1)
+}
