@@ -116,25 +116,26 @@ warningsDataCompleteness <- function(datatable, variables){
 #' @description Plots the number and fraction of missing data pr sample (SAid)
 #' @param flatRDBES flatRDBES data.table() with column names following the RDBES (v 1.17) R-Name specification.
 #' @param var variable to plot missing data for (column in flatRDBES)
-#' @example
+#' @examples
 #'  ages <- extractBV(NORportsampling2018$BV, c("Age"))
 #'  agesamples <- merge(ages, NORportsampling2018$SA, by="SAid")
 #'  plotSAnas(agesamples, c("Age"))
+#' @export
 plotSAnas <- function(flatRDBES, var){
   stopifnot("SAid" %in% names(flatRDBES))
   stopifnot(var %in% names(flatRDBES))
 
   missingPrSample <- aggregate(list(missing=flatRDBES[[var]]), by=list(SAid=flatRDBES$SAid), FUN=function(x){sum(is.na(x))})
   missingPrSample <- missingPrSample[missingPrSample$missing>0,]
-  missing <- ggplot(missingPrSample, aes(x=missing)) +
-    geom_histogram(binwidth = 1) +
-    labs(title="Missing data",x=paste(var, "missing"), y = "# samples (SAid)")
+  missing <- ggplot2::ggplot(missingPrSample, ggplot2::aes(x=missing)) +
+    ggplot2::geom_histogram(binwidth = 1) +
+    ggplot2::labs(title="Missing data",x=paste(var, "missing"), y = "# samples (SAid)")
 
   fractionPrSample <- aggregate(list(fraction=flatRDBES[[var]]), by=list(SAid=flatRDBES$SAid), FUN=function(x){100*sum(is.na(x))/length(x)})
   fractionPrSample <- fractionPrSample[fractionPrSample$fraction>0,]
-  missingFrac <- ggplot(fractionPrSample, aes(x=fraction)) +
-    geom_histogram(binwidth = 5) +
-    labs(title="Missing data",x=paste(var, "missing (%)"), y = "# samples (SAid)")
+  missingFrac <- ggplot2::ggplot(fractionPrSample, ggplot2::aes(x=fraction)) +
+    ggplot2::geom_histogram(binwidth = 5) +
+    ggplot2::labs(title="Missing data",x=paste(var, "missing (%)"), y = "# samples (SAid)")
 
   gridExtra::grid.arrange(missing, missingFrac, nrow=1)
 }

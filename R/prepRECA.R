@@ -73,6 +73,13 @@ checkAllSampledCar <- function(landings, samples, fixedeffects, careffect, neigh
 #' @param randomeffects character() vector specifying random effects. Corresponding columns must exists samples (may also exist in landings).
 #' @param careffect character() specifying a random effect with conditional autoregressive coefficient. Corresponding columns must exists samples (may also exist in landings).
 #' @param neighbours list() specifying the neighbourhood-structure for the careffect. neighbours[a] should provide a vector of neighbours to a. May be NULL of no careffect is used.
+#' @return list() with elements:
+#' \describe{
+#'  \item{AgeLength}{input needed for \code{\link[Reca]{eca.estimate}} and \code{\link[Reca]{eca.predict}}}
+#'  \item{WeightLength}{input needed for \code{\link[Reca]{eca.estimate}} and \code{\link[Reca]{eca.predict}}}
+#'  \item{Landings}{input needed for \code{\link[Reca]{eca.estimate}} and \code{\link[Reca]{eca.predict}}}
+#'  \item{CodeMap}{Mapping of values for each covariate in samples and landings to integer value used in R-ECA.}
+#' }
 #' @export
 prepRECA <- function(samples, landings, fixedeffects, randomeffects, careffect, neighbours=NULL){
   # check mandatory columns
@@ -145,8 +152,116 @@ prepRECA <- function(samples, landings, fixedeffects, randomeffects, careffect, 
 
   # info matrix: interaction and in.landings based on landings
 
-  #
-  # Test error checks, including empty lists
-  #
+}
 
+#' Data report for R-ECA preparation
+#' @description
+#'  Generates overview of samples to inform on sample availability in potential cell definitions.
+#'  Informs on which covariates may be fixed effects, and how grouping of covariates is best done for random effects.
+#'
+#'  The columns in landings define the cells.
+#'  For each cell the total landed weight is reported, along with the number of unique occurances of covariates not in landings (including Catchsample).
+#'  Lastly the number of fish measurements for Age, Weight and Length is reported.
+#'
+#' @param samples data.table() with samples, each row corresponding to one sampled fish. Contains columns:
+#'  \describe{
+#'   \item{CatchSampleId}{Column identifying each catch sample. Typically a haul or a landing.}
+#'   \item{Age}{Age of fish. Must be complete (no NAs)}
+#'   \item{Length}{Length of fish. Must be complete (no NAs)}
+#'   \item{Weight}{Weight of fish. Fish with missing values will not be included in Weight-given-length model.}
+#'   \item{...}{Additional columns to be used as covariates. Must at least be all covariates in 'landings'.}
+#'  }
+#'
+#' @param landings data.table() with total landings, each row corresponding to one cell. Contains columns:
+#' \describe{
+#'  \item{LiveWeightKG}{numeric(). Total landings (Live/Round weight in Kg) for the cell}
+#'  \item{<midseason>}{optional for this function. numeric() The temporal location of the cell, expressed as fraction of a year.}
+#'  \item{...}{Additional columns to be used as covariates. These define each cell.}
+#' }
+#' @return data.table() with columns
+#' \describe{
+#'  \item{<Covariates in landings>}{one column for each. Defines the cells.}
+#'  \item{LiveWeightKG}{The total weight (kg) in the cell.}
+#'  \item{LiveWeightCumFraction}{The fraction of landings in this cell AND all the cells with higher total weight than this cell.}
+#'  \item{<Count of covariates not in landings>}{Count of unique values for covariate. one column for each. Column name is covariate name (from samples) prefixed with n}
+#'  \item{nCatchsample}{The number of unique catch samples in the cell.}
+#'  \item{nAge}{The number of age readings in the cell.}
+#'  \item{nWeight}{The number of fish weight measurements in the cell.}
+#'  \item{nLength}{The number of fish length measurements in the cell.}
+#' }
+#' @export
+rEcaDataReport <- function(samples, landings){
+  # check mandatory columns
+  if (!(all(c("LiveWeightKG") %in% names(landings)))){
+    stop("Columns LiveWeightKG and midseason are mandatory in landings")
+  }
+  if (!(all(c("CatchSampleId", "Age", "Length", "Weight") %in% names(samples)))){
+    stop("Columns, CatchSampleId, Age, Length, and Weight are mandatory in landings")
+  }
+
+  # check for NAs
+  if (!all(!is.na(samples[,!"Weight"]))){
+    stop("NAs are only allowed for weight in samples")
+  }
+  if(!all(!is.na(landings))){
+    stop("NAs in landings")
+  }
+
+  inlandings <- names(landings)
+  inlandings <- inlandings[!(inlandings %in% c("LiveWeightKG", "midseason"))]
+
+  insamples <- names(samples)
+  insamples <- insamples[!(insamples %in% c("CatchSampleId", "Age", "Length", "Weight"))]
+
+  if (length(inlandings) == 0){
+    stop("No covariates in landings. Cannot produce report.")
+  }
+
+  if (!all(insamples %in% inlandings)){
+    stop("All covariates in landings must also be in samples")
+  }
+
+  agglist <- list()
+  for (l in inlandings){
+    agglist[[l]] <- samples[[l]]
+  }
+
+  agglistLand <- list()
+  for (l in inlandings){
+    agglistLand[[l]] <- landings[[l]]
+  }
+
+  # samples (count unique)
+  nCs <- aggregate(list(nCatchsample=samples$CatchSampleId), by=agglist, FUN=function(x){length(unique(x))})
+
+  # fish parameters, count rows
+  nAges <- aggregate(list(nAge=samples$Age), by=agglist, FUN=length)
+  nWeight <- aggregate(list(nWeight=samples$Weight), by=agglist, FUN=length)
+  nLength <- aggregate(list(nLength=samples$Length), by=agglist, FUN=length)
+
+  # total weights, sum
+  kgLanded <- aggregate(list(LiveWeightKG=landings$LiveWeightKG), by=agglistLand, FUN=sum)
+  kgLanded <- kgLanded[order(kgLanded$LiveWeightKG, decreasing=T),]
+  kgLanded$LiveWeightCumFraction <- cumsum(kgLanded$LiveWeightKG) / sum(kgLanded$LiveWeightKG)
+
+  out <- merge(kgLanded, nCs, all.x=T)
+
+  # covariates (count unique)
+  for (s in insamples[!(insamples %in% inlandings)]){
+    l <- list(t=samples[[s]])
+    names(l) <- paste("n",s)
+    agg <- aggregate(l, agglist, FUN=function(x){length(unique(x))})
+    out <- merge(out, agg, all.x=T)
+  }
+
+  out <- merge(out, nAges, all.x=T)
+  out <- merge(out, nWeight, all.x=T)
+  out <- merge(out, nLength, all.x=T)
+
+  stopifnot(all(!is.na(out$LiveWeightKG)))
+  # NAs come from cells not present in samples
+  out[is.na(out)]<-0
+  out <- out[order(out$LiveWeightKG, decreasing = T),]
+  out <- as.data.table(out)
+  return(out)
 }

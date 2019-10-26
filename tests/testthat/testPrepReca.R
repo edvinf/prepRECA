@@ -32,3 +32,9 @@ expect_error(prepRECA(fishdata, landings, NULL, c("gear"), NULL))
 
 context("test prepRECA: missing column fixed effect")
 expect_error(prepRECA(fishdata, landings, c("gear"), NULL, NULL))
+
+context("test rEcaDataReport: minimal run")
+rEcaDataReport(fishdata, landings)
+
+context("test rEcaDataReport: no covariates")
+expect_error(rEcaDataReport(fsmin, lmin))
