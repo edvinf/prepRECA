@@ -585,11 +585,11 @@ flattenRDBES <- function(datalist){
 #'  Exports RDBES data mode v1.17 to csv files.
 #' @details
 #'  One file will be produced for each table
-#'  @param data list of data.table one for each table in hierarchy
-#'  @param targetdir character() directory to write files to
-#'  @param overwrite logical() whether to overwrite existing files
-#'  @noRd
-#'  @keywords internal
+#' @param data list of data.table one for each table in hierarchy
+#' @param targetdir character() directory to write files to
+#' @param overwrite logical() whether to overwrite existing files
+#' @noRd
+#' @keywords internal
 exportCsv <- function(data, targetdir, overwrite=F){
   filenames <- paste(targetdir, unlist(lapply(names(data), FUN=function(x){paste(x, "csv", sep=".")})), sep="/")
 
@@ -598,7 +598,7 @@ exportCsv <- function(data, targetdir, overwrite=F){
   }
 
   for (i in 1:length(data)){
-    write.csv(data[[i]], file=filenames[i], quote = F, row.names = F)
+    utils::write.csv(data[[i]], file=filenames[i], quote = F, row.names = F)
   }
 }
 

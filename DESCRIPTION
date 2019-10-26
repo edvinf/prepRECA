@@ -11,7 +11,7 @@ License: LGPL
 Encoding: UTF-8
 LazyData: true
 Depends: R (>= 2.10)
-Imports: data.table, readr, ggplot2, gridExtra
+Imports: data.table, readr, ggplot2, gridExtra, utils
 Suggests: 
     testthat
 RoxygenNote: 6.1.1

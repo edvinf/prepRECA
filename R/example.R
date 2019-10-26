@@ -5,22 +5,22 @@ REA_example_haddock <- function(){
   #
 
   # select samples of target species, aphia code for haddock is 126437
-  SA <- NORportsampling2018$SA[NORportsampling2018$SA$SAsppCode == "126437",]
+  SA <- prepRECA::NORportsampling2018$SA[prepRECA::NORportsampling2018$SA$SAsppCode == "126437",]
 
   # extract biological measurements corresponding to these samples
-  BV <- NORportsampling2018$BV[NORportsampling2018$BV$SAid %in% SA$SAid,]
+  BV <- prepRECA::NORportsampling2018$BV[prepRECA::NORportsampling2018$BV$SAid %in% SA$SAid,]
 
   # merge in needed upper levels.
   # SS, SD and DE is not strictly needed,
   # but included for checking for stratification and clustering at these levels.
   fishdata <- extractBV(BV, c("Age", "Length", "Weight"))
   fishdata <- merge(fishdata, SA, by="SAid")
-  fishdata <- merge(fishdata, NORportsampling2018$SS, by="SSid")
-  fishdata <- merge(fishdata, NORportsampling2018$LE, by="LEid", suffixes = c("", ".LE"))
-  fishdata <- merge(fishdata, NORportsampling2018$VD, by="VDid")
-  fishdata <- merge(fishdata, NORportsampling2018$OS, by="OSid")
-  fishdata <- merge(fishdata, NORportsampling2018$SD, by="SDid")
-  fishdata <- merge(fishdata, NORportsampling2018$DE, by="DEid")
+  fishdata <- merge(fishdata, prepRECA::NORportsampling2018$SS, by="SSid")
+  fishdata <- merge(fishdata, prepRECA::NORportsampling2018$LE, by="LEid", suffixes = c("", ".LE"))
+  fishdata <- merge(fishdata, prepRECA::NORportsampling2018$VD, by="VDid")
+  fishdata <- merge(fishdata, prepRECA::NORportsampling2018$OS, by="OSid")
+  fishdata <- merge(fishdata, prepRECA::NORportsampling2018$SD, by="SDid")
+  fishdata <- merge(fishdata, prepRECA::NORportsampling2018$DE, by="DEid")
 
   warningsRecaApplicability(fishdata)
   # Need to handle Gutted fish. Used for mean-weight estimation in cells, will attempt with removing Gutted fish
@@ -44,7 +44,7 @@ REA_example_haddock <- function(){
   #
   # Landings data CL
   #
-  landings <- CLCodHadNOR
+  landings <- prepRECA::CLCodHadNOR
 
   # select landings of target species, aphia code for haddock is 126437
   landings <- landings[landings$Species == "126437",]
