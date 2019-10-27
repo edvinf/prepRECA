@@ -17,27 +17,20 @@ landings <- prepRECA::CLCodHadNOR
 landings <- landings[landings$Species == "126437",]
 landings$Metier5 <- landings$FishingActivityCategoryEuropeanLvl5
 landings$LiveWeightKG <- landings$OfficialLandingsWeight
-month <- landings$Month
-landings <- landings[,c("Metier5", "LiveWeightKG")]
-
 
 context("test prepRECA: minimal run")
-fsmin <- fishdata
-fsmin$Metier5 <- NULL
-fsmin$vessel <- NULL
-lmin <- landings
-lmin$Metier5 <- NULL
-prepRECA(fsmin[1:1000], lmin, NULL, NULL, NULL, month=month)
-prepRECA(fishdata[1:1000], landings, c("Metier5"), c("vessel"), NULL, month=month)
+
+prepRECA(fishdata[1:1000], landings, NULL, NULL, NULL, month=landings$Month)
+prepRECA(fishdata[1:1000], landings, c("Metier5"), c("vessel"), NULL, month=landings$Month)
 
 context("test prepRECA: missing spec")
-expect_error(prepRECA(fishdata, landings, NULL, NULL, NULL, month=month))
+expect_error(prepRECA(fishdata, landings, NULL, NULL, NULL, month=landings$Month))
 
 context("test prepRECA: missing column random effect")
-expect_error(prepRECA(fishdata, landings, NULL, c("gear"), NULL, month=month))
+expect_error(prepRECA(fishdata, landings, NULL, c("gear"), NULL, month=landings$Month))
 
 context("test prepRECA: missing column fixed effect")
-expect_error(prepRECA(fishdata, landings, c("gear"), NULL, NULL, month=month))
+expect_error(prepRECA(fishdata, landings, c("gear"), NULL, NULL, month=landings$Month))
 
 context("test rEcaDataReport: minimal run")
 rEcaDataReport(fishdata, landings)
@@ -89,7 +82,7 @@ expect_true(all(c("vessel", "constant") %in% names(cv)))
 
 context("tets getLandings: one covariate")
 covariateMaps[["Metier5"]] <- getCovariateMap("Metier5", fishdata, landings)
-land <- getLandings(landings, c("Metier5"), covariateMaps, month=month)
+land <- getLandings(landings, c("Metier5"), covariateMaps, month=landings$Month)
 expect_equal(nrow(land$AgeLengthCov), length(land$LiveWeightKG))
 expect_equal(nrow(land$WeightLengthCov), length(land$LiveWeightKG))
 expect_equal(length(unique(land$AgeLengthCov$Metier5)), length(unique(landings$Metier5)))

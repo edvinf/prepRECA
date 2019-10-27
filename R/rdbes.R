@@ -136,9 +136,9 @@ warningsDataCompleteness <- function(datatable, variables){
 #' @param flatRDBES flatRDBES data.table() with column names following the RDBES (v 1.17) R-Name specification.
 #' @param var variable to plot missing data for (column in flatRDBES)
 #' @examples
-#'  ages <- extractBV(NORportsampling2018$BV, c("Age"))
+#'  ages <- extractBV(NORportsampling2018$BV, c("Age"), c("integer"))
 #'  agesamples <- merge(ages, NORportsampling2018$SA, by="SAid")
-#'  plotSAnas(agesamples, c("Age"), c("integer"))
+#'  plotSAnas(agesamples, c("Age"))
 #' @export
 plotSAnas <- function(flatRDBES, var){
   stopifnot("SAid" %in% names(flatRDBES))

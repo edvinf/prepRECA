@@ -45,9 +45,8 @@ REA_example_haddock <- function(){
 
   # select landings of target species, aphia code for haddock is 126437
   landings <- landings[landings$Species == "126437",]
-
-  # aggregate on var, report count of unique SAid,
-
+  month <- landings$Month
+  landings <- landings[,c("Metier5", "Area", "Quarter")]
   warning("Check definition of partcount wrp replicate sampling")
   warning("Check effect of nlev not correctly set for random effects not in landings")
 
@@ -55,6 +54,7 @@ REA_example_haddock <- function(){
   # Running R-ECA
   #
 
+  ecadata <- prepRECA(fishdata, landings, c(), c(), NULL, month = month)
   warning("Implement prepECA") #gear, season, area
 
   # feed result from prepECA to eca.estimate
