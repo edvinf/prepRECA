@@ -329,7 +329,7 @@ getLandings <- function(landings, covariates, covariateMaps, date=NULL, month=NU
 #'  \item{WeightLength}{input needed for \code{\link[Reca]{eca.estimate}} and \code{\link[Reca]{eca.predict}}}
 #'  \item{Landings}{input needed for \code{\link[Reca]{eca.estimate}} and \code{\link[Reca]{eca.predict}}}
 #'  \item{GlobalParameters}{input needed for \code{\link[Reca]{eca.estimate}} and \code{\link[Reca]{eca.predict}}. see details}
-#'  \item{CodeMap}{Mapping of values for each covariate in landings and samples (including catchId) to integer value used in R-ECA.}
+#'  \item{CovariateMaps}{Mapping of values for each covariate in landings and samples (including catchId) to integer value used in R-ECA.}
 #' }
 #' @export
 prepRECA <- function(samples, landings, fixedEffects, randomEffects, carEffect=NULL, neighbours=NULL, nFish=NULL, ageError=NULL, minAge=NULL, maxAge=NULL, maxLength=NULL, lengthResolution=NULL, testMax=1000, date=NULL, month=NULL, quarter=NULL){
@@ -480,6 +480,15 @@ prepRECA <- function(samples, landings, fixedEffects, randomEffects, carEffect=N
   GlobalParameters$CC <- F  # CC (stock splitting) not supported
   GlobalParameters$CCerror <- F # CC (stock splitting) not supported
 
+
+  ret <- list()
+  ret$AgeLength <- AgeLength
+  ret$WeightLength <- WeightLength
+  ret$Landings <- Landings
+  ret$GlobalParameters <- GlobalParameters
+  ret$CovariateMaps <- covariateMaps
+
+  return(ret)
 }
 
 #' Data report for R-ECA preparation
