@@ -94,6 +94,8 @@ expect_equal(nrow(land$AgeLengthCov), length(land$LiveWeightKG))
 expect_equal(nrow(land$WeightLengthCov), length(land$LiveWeightKG))
 expect_equal(length(unique(land$AgeLengthCov$Metier5)), length(unique(landings$Metier5)))
 expect_equal(max(land$AgeLengthCov$Metier5), length(unique(landings$Metier5)))
+expect_true(all(c("Metier5", "midseason") %in% names(land$AgeLengthCov)))
+expect_true(all(c("Metier5", "midseason") %in% names(land$WeightLengthCov)))
 
 warning("Add test for neighbour")
 
