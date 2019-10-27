@@ -10,18 +10,21 @@
 #'  Checks and halts for heterogenity in length units, weight untits, length measurements, or BVstratification
 #' @param BVtable data.table() with column names following the RDBES (v 1.17) R-Name specification
 #' @param BVtypes a character() vector identifying the BVtypes to introduce as columns (other record types are discarded)
+#' @param dataTypes The desired data types for the columns. Currently supported: integer, numeric, character and logical
 #' @return data.table()
 #' @examples
-#' extractBV(NORportsampling2018$BV, c("Age", "Length", "Weight"))
+#' extractBV(NORportsampling2018$BV, c("Age", "Length", "Weight"), c("integer", "numeric", "numeric"))
 #' @export
-extractBV <- function(BVtable, BVtypes){
+extractBV <- function(BVtable, BVtypes, dataTypes){
   if (!all(BVtypes %in% BVtable$BVtype)){
     stop(paste("Not all BVtypes found in data (",paste(BVtypes[!(BVtypes %in% BVtable$BVtype)], collapse = ",")), ")")
   }
 
   extraction <- unique(BVtable[,c("SAid", "FMid", "BVfishID")])
 
-  for (t in BVtypes){
+  for (i in 1:length(BVtypes)){
+    t <- BVtypes[i]
+    datatype <- dataTypes[i]
     BVt <- BVtable[BVtable$BVtype == t,]
     if (length(unique(BVt$BVunitVal)) > 1){
       stop(paste("Can not extract ", t, "as it is recorded with heterogenous BVunitVal"))
@@ -36,6 +39,22 @@ extractBV <- function(BVtable, BVtypes){
       stop(paste("Can not extract ", t, "as it has stratified selection for some BVfishID"))
     }
     BVt <- BVt[,c("SAid", "FMid", "BVfishID", "BVvalue")]
+    if (datatype == "integer"){
+      BVt$BVvalue <- as.integer(BVt$BVvalue)
+    }
+    else if (datatype == "numeric"){
+      BVt$BVvalue <- as.numeric(BVt$BVvalue)
+    }
+    else if (datatype == "character"){
+      BVt$BVvalue <- as.character(BVt$BVvalue)
+    }
+    else if (datatype == "logical"){
+      BVt$BVvalue <- as.logical(BVt$BVvalue)
+    }
+    else{
+      stop(paste("datatype", datatype, "not supported."))
+    }
+
     names(BVt) <- c("SAid", "FMid", "BVfishID", t)
 
     extraction <- merge(extraction, BVt, all=T)
@@ -119,7 +138,7 @@ warningsDataCompleteness <- function(datatable, variables){
 #' @examples
 #'  ages <- extractBV(NORportsampling2018$BV, c("Age"))
 #'  agesamples <- merge(ages, NORportsampling2018$SA, by="SAid")
-#'  plotSAnas(agesamples, c("Age"))
+#'  plotSAnas(agesamples, c("Age"), c("integer"))
 #' @export
 plotSAnas <- function(flatRDBES, var){
   stopifnot("SAid" %in% names(flatRDBES))

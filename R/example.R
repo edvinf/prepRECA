@@ -13,7 +13,7 @@ REA_example_haddock <- function(){
   # merge in needed upper levels.
   # SS, SD and DE is not strictly needed,
   # but included for checking for stratification and clustering at these levels.
-  fishdata <- extractBV(BV, c("Age", "Length", "Weight"))
+  fishdata <- extractBV(BV, c("Age", "Length", "Weight"), c("integer", "numeric", "numeric"))
   fishdata <- merge(fishdata, SA, by="SAid")
   fishdata <- merge(fishdata, prepRECA::NORportsampling2018$SS, by="SSid")
   fishdata <- merge(fishdata, prepRECA::NORportsampling2018$LE, by="LEid", suffixes = c("", ".LE"))
@@ -50,8 +50,8 @@ REA_example_haddock <- function(){
   landings <- landings[landings$Species == "126437",]
 
   # aggregate on var, report count of unique SAid,
-  warning("Implement check on cell completeness for selected variables") #gear, season, area, need landings
 
+  warning("Check definition of partcount wrp replicate sampling")
 
   #
   # Running R-ECA
