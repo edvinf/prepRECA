@@ -215,22 +215,50 @@ getNeighbours <- function(neighbours){
 }
 
 #' Formats landings for R-ECA.
+#' @details
+#'  The parameters 'date', 'month', and 'quarter' are used to set the temporal resolution for catch at age prediction.
+#'  Provide exactly one of these, and set the other ones to NULL.
+#'
 #' @param landings data.table() with total landings (as in \code{\link[prepRECA]{prepRECA}}, and \code{\link[prepRECA]{rEcaDataReport}}), each row corresponding to one cell. Contains columns:
 #' \describe{
 #'  \item{LiveWeightKG}{numeric(). Total landings (Live/Round weight in Kg) for the cell}
-#'  \item{midseason}{numeric(). The temporal location of the cell, expressed as fraction of a year.}
 #'  \item{...}{Additional columns to be used as covariates. These define each cell. Type of covariate must be sepcified in 'fixedEffects', 'randomEffects' or 'carEffect'}
 #' }
 #' @param covariates character() vector of covariates used in model
 #' @param covariateMaps list() mapping covariate values from integers used in RECA to values used in 'landings'. For a covarate 'cov', the integer i is used for value a, when covariateMaps[[cov]][[i]] == a
-#' @return
-getLandings <- function(landings, covariates, covariateMaps){
+#' @param date POSIXct() vector, matching the number of rows in 'landings', date of catch, see details.
+#' @param month integer() vector, matching the number of rows in 'landings', month of catch (1 for January, etc.), see details.
+#' @param quarter integer() vector, vector, matching the number of rows in 'landings', quarter of catch (1 for Q1, etc.), see details.
+#' @return Landings object as required by \code{\link[Reca]{eca.predict}}
+getLandings <- function(landings, covariates, covariateMaps, date=NULL, month=NULL, quarter=NULL){
+
+  if (is.null(date) & is.null(month) & is.null(quarter)){
+    stop("date, month, and quarter can not all be NULL")
+  }
+  if (sum(c(!is.null(date), !is.null(month), !is.null(quarter))) > 1){
+    stop("Several arguments for temporal resolution is provided. Provide either: date, month or quarter.")
+  }
+
   inlandings <- names(landings)[names(landings) %in% covariates]
 
   for (cov in inlandings){
     landings[[cov]] <- match(landings[[cov]], covariateMaps[[cov]])
   }
 
+  if (!is.null(date)){
+    landings$midseason <- (as.numeric(strftime(date, "%j"))+1)/366
+  }
+  else if (!is.null(month)){
+    landings$midseason <- (month/12.0)-(1/24.0)
+  }
+  else if (!is.null(quarter)){
+    landings$midseason <- (quarter/4.0)-(1/8.0)
+  }
+  else{
+    stop()
+  }
+
+  inlandings <- c(inlandings, "midseason")
   #aggregate ?
 
   recaLandings <- list()
@@ -250,10 +278,8 @@ getLandings <- function(landings, covariates, covariateMaps){
 #'  All fixed effects, as well as any car-effect, must be included in the cell definition.
 #'  All covariates must occur in samples.
 #'
-#'  midseason is used for calculating a fractional age of fish at harvest.
-#'  Whenever a categorical temporal covariate is included it is typically set to a time in the middle of each value of the covariate.
-#'  Consider a model configuration where month is included as a covariate.
-#'  For each cell containing January, midseason would naturally be defined as 15.5/365 for a non-leap year.
+#'  The parameters 'date', 'month', and 'quarter' are used to set the temporal resolution for catch at age prediction.
+#'  Provide exactly one of these, and set the other ones to NULL.
 #'
 #'  neighbours must be symetric, so that b \%in\% neighbours[a], implies a \%in\% neighbours[b]
 #'
@@ -277,7 +303,6 @@ getLandings <- function(landings, covariates, covariateMaps){
 #' @param landings data.table() with total landings, each row corresponding to one cell. Contains columns:
 #' \describe{
 #'  \item{LiveWeightKG}{numeric(). Total landings (Live/Round weight in Kg) for the cell}
-#'  \item{midseason}{numeric(). The temporal location of the cell, expressed as fraction of a year.}
 #'  \item{...}{Additional columns to be used as covariates. These define each cell. Type of covariate must be sepcified in 'fixedEffects', 'randomEffects' or 'carEffect'}
 #' }
 #' @param fixedEffects character() vector specifying fixed effects. Corresponding columns must exists in samples and landings.
@@ -291,6 +316,9 @@ getLandings <- function(landings, covariates, covariateMaps){
 #' @param maxLength longest length to include in model.  If NULL, maximal length in samples is used.
 #' @param lengthResolution desired resolution for length groups. If NULL minimal difference in first testMax records are used.
 #' @param testMax The largest number of record to inspect for deriving lengthResolution.
+#' @param date POSIXct() vector, matching the number of rows in 'landings', date of catch, see details.
+#' @param month integer() vector, matching the number of rows in 'landings', month of catch (1 for January, etc.), see details.
+#' @param quarter integer() vector, vector, matching the number of rows in 'landings', quarter of catch (1 for Q1, etc.), see details.
 #' \describe{
 #'  \item{sampleID}{Column idenitfying the sample, defined as for 'samples'}
 #'  \item{count}{Estimated number of fish in the part of the catch the sample was taken from}
@@ -304,10 +332,10 @@ getLandings <- function(landings, covariates, covariateMaps){
 #'  \item{CodeMap}{Mapping of values for each covariate in landings and samples (including catchId) to integer value used in R-ECA.}
 #' }
 #' @export
-prepRECA <- function(samples, landings, fixedEffects, randomEffects, carEffect=NULL, neighbours=NULL, nFish=NULL, ageError=NULL, minAge=NULL, maxAge=NULL, maxLength=NULL, lengthResolution=NULL, testMax=1000){
+prepRECA <- function(samples, landings, fixedEffects, randomEffects, carEffect=NULL, neighbours=NULL, nFish=NULL, ageError=NULL, minAge=NULL, maxAge=NULL, maxLength=NULL, lengthResolution=NULL, testMax=1000, date=NULL, month=NULL, quarter=NULL){
   # check mandatory columns
-  if (!(all(c("LiveWeightKG", "midseason") %in% names(landings)))){
-    stop("Columns LiveWeightKG and midseason are mandatory in landings")
+  if (!(all(c("LiveWeightKG") %in% names(landings)))){
+    stop("Column LiveWeightKG is mandatory in landings")
   }
   if (!(all(c("catchId", "sampleId", "date", "Age", "Length", "Weight") %in% names(samples)))){
     stop("Columns, catchId, sampleId, Age, Length, and Weight are mandatory in samples")
@@ -372,8 +400,8 @@ prepRECA <- function(samples, landings, fixedEffects, randomEffects, carEffect=N
   if(!(all(names(samples) %in% c(fixedEffects, randomEffects, carEffect, c("catchId", "sampleId", "date", "Age", "Length", "Weight"))))){
     stop(paste("Effect not specified for covariates:", paste(names(samples)[!(names(samples) %in% c(fixedEffects, randomEffects, carEffect, c("catchId", "Age", "Length", "Weight")))], collapse=",")))
   }
-  if(!(all(names(landings) %in% c(fixedEffects, randomEffects, carEffect, c("LiveWeightKG", "midseason"))))){
-    stop(paste("Effect not specified for covariates:", paste(names(landings)[!(names(landings) %in% c(fixedEffects, randomEffects, carEffect, c("LiveWeightKG", "midseason")))], collapse=",")))
+  if(!(all(names(landings) %in% c(fixedEffects, randomEffects, carEffect, c("LiveWeightKG"))))){
+    stop(paste("Effect not specified for covariates:", paste(names(landings)[!(names(landings) %in% c(fixedEffects, randomEffects, carEffect, c("LiveWeightKG")))], collapse=",")))
   }
 
   covariateMaps <- list()
@@ -441,7 +469,7 @@ prepRECA <- function(samples, landings, fixedEffects, randomEffects, carEffect=N
   # CARNeighbours are taken from AgeLength
   covariateMaps$WeightLengthCatchId <- ret$catchIdMap
 
-  Landings <- getLandings(landings, c(fixedEffects, randomEffects, carEffect), covariateMaps)
+  Landings <- getLandings(landings, c(fixedEffects, randomEffects, carEffect), covariateMaps, date, month, quarter)
 
   GlobalParameters <- list()
   GlobalParameters$lengthresCM <- lengthResolution
@@ -473,10 +501,9 @@ prepRECA <- function(samples, landings, fixedEffects, randomEffects, carEffect=N
 #'   \item{...}{Additional columns to be used as covariates. Must at least be all covariates in 'landings'.}
 #'  }
 #'
-#' @param landings data.table() with total landings (as in \code{\link[prepRECA]{prepRECA}}, except midseason is optional), each row corresponding to one cell. Contains columns:
+#' @param landings data.table() with total landings (as in \code{\link[prepRECA]{prepRECA}}), each row corresponding to one cell. Contains columns:
 #' \describe{
 #'  \item{LiveWeightKG}{numeric(). Total landings (Live/Round weight in Kg) for the cell}
-#'  \item{<midseason>}{optional for this function. numeric() The temporal location of the cell, expressed as fraction of a year.}
 #'  \item{...}{Additional columns to be used as covariates. These define each cell.}
 #' }
 #' @return data.table() with columns
@@ -495,7 +522,7 @@ prepRECA <- function(samples, landings, fixedEffects, randomEffects, carEffect=N
 rEcaDataReport <- function(samples, landings){
   # check mandatory columns
   if (!(all(c("LiveWeightKG") %in% names(landings)))){
-    stop("Columns LiveWeightKG and midseason are mandatory in landings")
+    stop("Column LiveWeightKG is mandatory in landings")
   }
   if (!(all(c("catchId", "sampleId", "date", "Age", "Length", "Weight") %in% names(samples)))){
     stop(paste("Columns, catchId, sampleId, Age, Length, and Weight are mandatory in samples. Missing:", paste(c("catchId", "sampleId", "Age", "Length", "Weight")[(!c("catchId", "sampleId", "Age", "Length", "Weight") %in% names(samples))])))
@@ -514,7 +541,7 @@ rEcaDataReport <- function(samples, landings){
   }
 
   inlandings <- names(landings)
-  inlandings <- inlandings[!(inlandings %in% c("LiveWeightKG", "midseason"))]
+  inlandings <- inlandings[!(inlandings %in% c("LiveWeightKG"))]
 
   insamples <- names(samples)
   insamples <- insamples[!(insamples %in% c("catchId", "sampleId", "date", "Age", "Length", "Weight"))]
