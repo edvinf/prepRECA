@@ -215,12 +215,12 @@ prepRECA <- function(samples, landings, fixedeffects, randomeffects, careffect, 
 #'  \item{<Covariates in landings>}{one column for each. Defines the cells.}
 #'  \item{LiveWeightKG}{The total weight (kg) in the cell.}
 #'  \item{LiveWeightCumFraction}{The fraction of landings in this cell AND all the cells with higher total weight than this cell.}
-#'  \item{<Count of covariates not in landings>}{Count of unique values for covariate. one column for each. Column name is covariate name (from samples) prefixed with n}
-#'  \item{nCatchsample}{The number of unique catches sampled in the cell.}
-#'  \item{nSample}{The number of unique catch-samples in the cell.}
-#'  \item{nAge}{The number of age readings in the cell.}
-#'  \item{nWeight}{The number of fish weight measurements in the cell.}
-#'  \item{nLength}{The number of fish length measurements in the cell.}
+#'  \item{<Count of covariates not in landings>}{Count of unique values for covariate. one column for each. Column name is covariate name (from samples) prefixed with N}
+#'  \item{Ncatch}{The number of unique catches sampled in the cell.}
+#'  \item{Nsample}{The number of unique catch-samples in the cell.}
+#'  \item{Nage}{The number of age readings in the cell.}
+#'  \item{Nweight}{The number of fish weight measurements in the cell.}
+#'  \item{Nlength}{The number of fish length measurements in the cell.}
 #' }
 #' @export
 rEcaDataReport <- function(samples, landings){
@@ -250,7 +250,7 @@ rEcaDataReport <- function(samples, landings){
     stop("No covariates in landings. Cannot produce report.")
   }
 
-  if (!all(insamples %in% inlandings)){
+  if (!all(inlandings %in% insamples)){
     stop(paste("All covariates in landings must also be in samples. Missing", paste(inlandings[!(inlandings %in% insamples)])))
   }
 
@@ -265,30 +265,32 @@ rEcaDataReport <- function(samples, landings){
   }
 
   # sampled units (count unique)
-  nCs <- aggregate(list(nCatch=samples$catchId), by=agglist, FUN=function(x){length(unique(x))})
+  nCs <- aggregate(list(Ncatch=samples$catchId), by=agglist, FUN=function(x){length(unique(x))})
   # samples units (count unique)
-  nSs <- aggregate(list(nSample=samples$sampleId), by=agglist, FUN=function(x){length(unique(x))})
+  nSs <- aggregate(list(Nsample=samples$sampleId), by=agglist, FUN=function(x){length(unique(x))})
 
   # fish parameters, count rows
-  nAges <- aggregate(list(nAge=samples$Age), by=agglist, FUN=length)
-  nWeight <- aggregate(list(nWeight=samples$Weight), by=agglist, FUN=length)
-  nLength <- aggregate(list(nLength=samples$Length), by=agglist, FUN=length)
+  nAges <- aggregate(list(Nage=samples$Age), by=agglist, FUN=length)
+  nWeight <- aggregate(list(Nweight=samples$Weight), by=agglist, FUN=length)
+  nLength <- aggregate(list(Nlength=samples$Length), by=agglist, FUN=length)
 
   # total weights, sum
   kgLanded <- aggregate(list(LiveWeightKG=landings$LiveWeightKG), by=agglistLand, FUN=sum)
   kgLanded <- kgLanded[order(kgLanded$LiveWeightKG, decreasing=T),]
   kgLanded$LiveWeightCumFraction <- cumsum(kgLanded$LiveWeightKG) / sum(kgLanded$LiveWeightKG)
 
-  out <- merge(kgLanded, nCs, all.x=T)
-  out <- merge(out, nSs, all.x=T)
+  out <- kgLanded
 
   # covariates (count unique)
   for (s in insamples[!(insamples %in% inlandings)]){
     l <- list(t=samples[[s]])
-    names(l) <- paste("n",s)
+    names(l) <- paste("N",s, sep="")
     agg <- aggregate(l, agglist, FUN=function(x){length(unique(x))})
     out <- merge(out, agg, all.x=T)
   }
+
+  out <- merge(out, nCs, all.x=T)
+  out <- merge(out, nSs, all.x=T)
 
   out <- merge(out, nAges, all.x=T)
   out <- merge(out, nWeight, all.x=T)

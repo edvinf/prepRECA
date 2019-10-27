@@ -4,11 +4,13 @@ fishdata <- extractBV(BV, c("Age", "Length", "Weight"))
 fishdata <- merge(fishdata, SA, by="SAid")
 fishdata <- merge(fishdata, NORportsampling2018$SS, by="SSid")
 fishdata <- merge(fishdata, NORportsampling2018$LE, by="LEid", suffixes = c("", ".LE"))
+fishdata <- merge(fishdata, prepRECA::NORportsampling2018$VD, by="VDid")
 fishdata <- fishdata[!is.na(fishdata$Age),]
 fishdata$catchId <- fishdata$LEid
 fishdata$sampleId <- fishdata$SAid
 fishdata$Metier5 <- fishdata$LEmetier5
-fishdata <- fishdata[,c("catchId", "sampleId", "Age", "Weight", "Length", "Metier5")]
+fishdata$vessel <- fishdata$VDencrCode
+fishdata <- fishdata[,c("catchId", "sampleId", "Age", "Weight", "Length", "Metier5", "vessel")]
 
 landings <- CLCodHadNOR
 landings <- landings[landings$Species == "126437",]
@@ -20,10 +22,11 @@ landings <- landings[,c("Metier5", "LiveWeightKG", "midseason")]
 context("test prepRECA: minimal run")
 fsmin <- fishdata
 fsmin$Metier5 <- NULL
+fsmin$vessel <- NULL
 lmin <- landings
 lmin$Metier5 <- NULL
 prepRECA(fsmin, lmin, NULL, NULL, NULL)
-prepRECA(fishdata, landings, c("Metier5"), NULL, NULL)
+prepRECA(fishdata, landings, c("Metier5"), c("vessel"), NULL)
 
 context("test prepRECA: missing spec")
 expect_error(prepRECA(fishdata, landings, NULL, NULL, NULL))
