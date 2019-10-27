@@ -121,8 +121,9 @@ convertCL <- function(landingsLss){
     stop("Incomplete aphia mapping")
   }
 
-  landingsLss$Month <- getMonth(landingsLss$`Siste fangstdato`)
-  landingsLss$Quarter <- getQuarter(landingsLss$Month)
+  landingsLss$Fangstår <- as.integer(landingsLss$Fangstår)
+  landingsLss$Month <- as.integer(getMonth(landingsLss$`Siste fangstdato`))
+  landingsLss$Quarter <- as.integer(getQuarter(landingsLss$Month))
   landingsLss <- getAreas(landingsLss)
   landingsLss$Subpolygon <- getSubPolygon(landingsLss$`Hovedområde (kode)`, landingsLss$`Lokasjon (kode)`)
   landingsLss$LandingCategory <- getLandingCategory(landingsLss$`Anvendelse hovedgruppe (kode)`)
@@ -141,6 +142,7 @@ convertCL <- function(landingsLss){
   landingsLss$UnallocatedCatchWeight <- 0
   landingsLss$LandingsMultiplier <- 1
   landingsLss$OfficialLandingsValue <- NA
+  landingsLss$Rundvekt <- as.integer(round(landingsLss$Rundvekt))
 
   lssNames <- c("Landingsnasjon (kode)", "Fartøynasjonalitet (kode)","Fangstår", "Quarter", "Month","ICESArea","StatRect", "Subpolygon", "aphia", "LandingCategory", "CommercialSizeCategoryScale","CommercialSizeCategory","FishingActivityCategoryNational", "FishingActivityCategoryEuropeanLvl5", "FishingActivityCategoryEuropeanLvl6", "Harbour", "VesselLengthCategory", "UnallocatedCatchWeight", "AreaMisreportedCatchWeight", "Rundvekt", "LandingsMultiplier", "OfficialLandingsValue")
   rdbNames <- c("LandingCountry", "VesselFlagCountry", "Year", "Quarter", "Month","Area", "StatisticalRectange", "Subpolygon", "Species", "LandingCategory", "CommercialSizeCategoryScale","CommercialSizeCategory","FishingActivityCategoryNational","FishingActivityCategoryEuropeanLvl5", "FishingActivityCategoryEuropeanLvl6", "Harbour", "VesselLengthCategory", "UnallocatedCatchWeight", "AreaMisreportedCatchWeight", "OfficialLandingsWeight", "LandingsMultiplier", "OfficialLandingsValue")
@@ -183,6 +185,10 @@ aggregateCL <- function(CLdata){
   for (a in aggcolumnnames){
     tab[tab[,a]=="notNA",a] <- NA
   }
+
+  tab$Month <- as.integer(tab$Month)
+  tab$Year <- as.integer(tab$Year)
+  tab$Quarter <- as.integer(tab$Quarter)
 
   return(as.data.table(tab))
 }
@@ -323,8 +329,8 @@ prepLandings_COD_HAD_2018 <- function(file){
   lset <- lset[lset$`Fartøynasjonalitet (kode)` == "NOR",]
   lset <- lset[lset$`Redskap (kode)`!=90,] #removed farmed fish
   lset <- lset[lset$`Hovedområde (kode)`!="81",] #remove landings in NAFO area
-  clset <- prepRECA:::convertCL(lset)
-  clagg <- prepRECA:::aggregateCL(clset)
+  clset <- convertCL(lset)
+  clagg <- aggregateCL(clset)
   return(clagg)
 }
 
