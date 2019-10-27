@@ -80,8 +80,8 @@ getCovariateMap <- function(covariate, samples, landings){
 #'
 #' @param samples data.table() with samples, each row corresponding to one sampled fish. Contains columns:
 #'  \describe{
-#'   \item{CatchSampleId}{Column identifying the catch that the sample was taken from. Typically a haul or a landing.}
-#'   \item{sampleId}{Column identifying the sample. If only one sample is taken for each catch. This can be set equal to CatchSampleId}
+#'   \item{catchId}{Column identifying the catch that the sample was taken from. Typically a haul or a landing.}
+#'   \item{sampleId}{Column identifying the sample. If only one sample is taken for each catch. This can be set equal to catchId}
 #'   \item{Age}{Age of fish. Must be complete (no NAs)}
 #'   \item{Length}{Length of fish. Must be complete (no NAs)}
 #'   \item{Weight}{Weight of fish. Fish with missing values will not be included in Weight-given-length model.}
@@ -110,8 +110,8 @@ prepRECA <- function(samples, landings, fixedeffects, randomeffects, careffect, 
   if (!(all(c("LiveWeightKG", "midseason") %in% names(landings)))){
     stop("Columns LiveWeightKG and midseason are mandatory in landings")
   }
-  if (!(all(c("CatchSampleId", "sampleId", "Age", "Length", "Weight") %in% names(samples)))){
-    stop("Columns, CatchSampleId, sampleId, Age, Length, and Weight are mandatory in samples")
+  if (!(all(c("catchId", "sampleId", "Age", "Length", "Weight") %in% names(samples)))){
+    stop("Columns, catchId, sampleId, Age, Length, and Weight are mandatory in samples")
   }
 
   # check for NAs
@@ -163,8 +163,8 @@ prepRECA <- function(samples, landings, fixedeffects, randomeffects, careffect, 
   }
 
   #check that all covariates are specified
-  if(!(all(names(samples) %in% c(fixedeffects, randomeffects, careffect, c("CatchSampleId", "sampleId", "Age", "Length", "Weight"))))){
-    stop(paste("Effect not specified for covariates:", paste(names(samples)[!(names(samples) %in% c(fixedeffects, randomeffects, careffect, c("CatchSampleId", "Age", "Length", "Weight")))], collapse=",")))
+  if(!(all(names(samples) %in% c(fixedeffects, randomeffects, careffect, c("catchId", "sampleId", "Age", "Length", "Weight"))))){
+    stop(paste("Effect not specified for covariates:", paste(names(samples)[!(names(samples) %in% c(fixedeffects, randomeffects, careffect, c("catchId", "Age", "Length", "Weight")))], collapse=",")))
   }
   if(!(all(names(landings) %in% c(fixedeffects, randomeffects, careffect, c("LiveWeightKG", "midseason"))))){
     stop(paste("Effect not specified for covariates:", paste(names(landings)[!(names(landings) %in% c(fixedeffects, randomeffects, careffect, c("LiveWeightKG", "midseason")))], collapse=",")))
@@ -196,8 +196,8 @@ prepRECA <- function(samples, landings, fixedeffects, randomeffects, careffect, 
 #'
 #' @param samples data.table() with samples, each row corresponding to one sampled fish. Contains columns:
 #'  \describe{
-#'   \item{CatchSampleId}{Column identifying the catch that the sample was taken from. Typically a haul or a landing.}
-#'   \item{sampleId}{Column identifying the sample. If only one sample is taken for each catch. This can be set equal to CatchSampleId}
+#'   \item{catchId}{Column identifying the catch that the sample was taken from. Typically a haul or a landing.}
+#'   \item{sampleId}{Column identifying the sample. If only one sample is taken for each catch. This can be set equal to catchId}
 #'   \item{Age}{Age of fish. Must be complete (no NAs)}
 #'   \item{Length}{Length of fish. Must be complete (no NAs)}
 #'   \item{Weight}{Weight of fish. Fish with missing values will not be included in Weight-given-length model.}
@@ -228,8 +228,8 @@ rEcaDataReport <- function(samples, landings){
   if (!(all(c("LiveWeightKG") %in% names(landings)))){
     stop("Columns LiveWeightKG and midseason are mandatory in landings")
   }
-  if (!(all(c("CatchSampleId", "sampleId", "Age", "Length", "Weight") %in% names(samples)))){
-    stop(paste("Columns, CatchSampleId, sampleId, Age, Length, and Weight are mandatory in samples. Missing:", paste(c("CatchSampleId", "sampleId", "Age", "Length", "Weight")[(!c("CatchSampleId", "sampleId", "Age", "Length", "Weight") %in% names(samples))])))
+  if (!(all(c("catchId", "sampleId", "Age", "Length", "Weight") %in% names(samples)))){
+    stop(paste("Columns, catchId, sampleId, Age, Length, and Weight are mandatory in samples. Missing:", paste(c("catchId", "sampleId", "Age", "Length", "Weight")[(!c("catchId", "sampleId", "Age", "Length", "Weight") %in% names(samples))])))
   }
 
   # check for NAs
@@ -244,14 +244,14 @@ rEcaDataReport <- function(samples, landings){
   inlandings <- inlandings[!(inlandings %in% c("LiveWeightKG", "midseason"))]
 
   insamples <- names(samples)
-  insamples <- insamples[!(insamples %in% c("CatchSampleId", "sampleId", "Age", "Length", "Weight"))]
+  insamples <- insamples[!(insamples %in% c("catchId", "sampleId", "Age", "Length", "Weight"))]
 
   if (length(inlandings) == 0){
     stop("No covariates in landings. Cannot produce report.")
   }
 
   if (!all(insamples %in% inlandings)){
-    stop("All covariates in landings must also be in samples")
+    stop(paste("All covariates in landings must also be in samples. Missing", paste(inlandings[!(inlandings %in% insamples)])))
   }
 
   agglist <- list()
@@ -265,7 +265,7 @@ rEcaDataReport <- function(samples, landings){
   }
 
   # sampled units (count unique)
-  nCs <- aggregate(list(nCatchsample=samples$CatchSampleId), by=agglist, FUN=function(x){length(unique(x))})
+  nCs <- aggregate(list(nCatch=samples$catchId), by=agglist, FUN=function(x){length(unique(x))})
   # samples units (count unique)
   nSs <- aggregate(list(nSample=samples$sampleId), by=agglist, FUN=function(x){length(unique(x))})
 
