@@ -33,12 +33,9 @@ REA_example_haddock <- function(){
   #check that age, length and covariates (vessel, gear, season, area) are complete
   warningsDataCompleteness(fishdata, c("Age", "Length", "VDencrCode", "LEmetier5", "OSstratum", "LEarea"))
 
-  #inspect missing ages
+  #inspect missing measurments
   plotSAnas(fishdata, "Age")
-  # samples with 1 missing: readability issues
-  # samples with 30-40% missing: subsampled during reading to save time
-  # either case: remove missing
-  fishdata <- fishdata[!is.na(fishdata$Age),]
+  plotSAnas(fishdata, "Weight")
 
 
   #
@@ -52,6 +49,7 @@ REA_example_haddock <- function(){
   # aggregate on var, report count of unique SAid,
 
   warning("Check definition of partcount wrp replicate sampling")
+  warning("Check effect of nlev not correctly set for random effects not in landings")
 
   #
   # Running R-ECA

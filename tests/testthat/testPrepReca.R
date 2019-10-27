@@ -10,7 +10,8 @@ fishdata$catchId <- fishdata$LEid
 fishdata$sampleId <- fishdata$SAid
 fishdata$Metier5 <- fishdata$LEmetier5
 fishdata$vessel <- fishdata$VDencrCode
-fishdata <- fishdata[,c("catchId", "sampleId", "Age", "Weight", "Length", "Metier5", "vessel")]
+fishdata$date <- fishdata$LEdate
+fishdata <- fishdata[,c("catchId", "sampleId", "date", "Age", "Weight", "Length", "Metier5", "vessel")]
 
 landings <- prepRECA::CLCodHadNOR
 landings <- landings[landings$Species == "126437",]
@@ -25,8 +26,8 @@ fsmin$Metier5 <- NULL
 fsmin$vessel <- NULL
 lmin <- landings
 lmin$Metier5 <- NULL
-prepRECA(fsmin, lmin, NULL, NULL, NULL)
-prepRECA(fishdata, landings, c("Metier5"), c("vessel"), NULL)
+prepRECA(fsmin[1:1000], lmin, NULL, NULL, NULL)
+prepRECA(fishdata[1:1000], landings, c("Metier5"), c("vessel"), NULL)
 
 context("test prepRECA: missing spec")
 expect_error(prepRECA(fishdata, landings, NULL, NULL, NULL))
@@ -44,9 +45,54 @@ context("test rEcaDataReport: no covariates")
 expect_error(rEcaDataReport(fsmin, lmin))
 
 context("tets getCovariateMap: simple run")
-map<-getCovariateMap(c("Metier5"), fishdata, landings)
+map <- prepRECA:::getCovariateMap(c("Metier5"), fishdata, landings)
 expect_equal(length(map), length(unique(c(fishdata$Metier5, landings$Metier5))))
 expect_true(map[[1]] %in% landings$Metier5)
+
+context("tets getInfoMatrix: simple run")
+infom <- getInfoMatrix(fishdata, landings, c("Metier5"), c("vessel"), NULL)
+expect_equal(nrow(infom), 3)
+expect_true(all(c("constant", "Metier5", "vessel") %in% rownames(infom)))
+expect_true(all(c("random", "CAR", "nlev") %in% colnames(infom)))
+
+
+context("tets getDataMatrixAgeLength: simple run")
+dmAgeLength <- getDataMatrixAgeLength(fishdata[1:10,], NULL)
+expect_true(all(dmAgeLength$DataMatrix$part.year > 0))
+expect_true(all(dmAgeLength$DataMatrix$part.year <= 1))
+expect_equal(max(dmAgeLength$DataMatrix$samplingID), length(unique(fishdata[1:10,"catchId"])))
+
+context("tets getDataMatrixAgeLength: nFish error")
+expect_error(getDataMatrixAgeLength(fishdata, NULL)) #delprøve on some sample
+
+context("tets getDataMatrixWeightLength: simple run")
+dmWeightLength <- getDataMatrixWeightLength(fishdata[1:10,], NULL)
+expect_equal(max(dmWeightLength$DataMatrix$samplingID), length(unique(fishdata[1:10,"catchId"])))
+
+context("tets getDataMatrixWeightLength: nFish error")
+expect_error(getDataMatrixWeightLength(fishdata, NULL)) #delprøve on some sample
+
+context("tets CovariateMatrix: simple run")
+cv <- getCovariateMatrix(fishdata, c(), NULL)
+expect_equal(nrow(cv), length(unique(fishdata$catchId)))
+expect_equal(ncol(cv),1)
+
+context("tets getCovariateMatrix: one covariate")
+covariateMaps <- list()
+covariateMaps[["vessel"]] <- getCovariateMap("vessel", fishdata, landings)
+cv <- getCovariateMatrix(fishdata, c("vessel"), covariateMaps)
+expect_equal(nrow(cv), length(unique(fishdata$catchId)))
+expect_equal(ncol(cv),2)
+expect_true(all(c("vessel", "constant") %in% names(cv)))
+
+
+context("tets getLandings: one covariate")
+covariateMaps[["Metier5"]] <- getCovariateMap("Metier5", fishdata, landings)
+land <- getLandings(landings, c("Metier5"), covariateMaps)
+expect_equal(nrow(land$AgeLengthCov), length(land$LiveWeightKG))
+expect_equal(nrow(land$WeightLengthCov), length(land$LiveWeightKG))
+expect_equal(length(unique(land$AgeLengthCov$Metier5)), length(unique(landings$Metier5)))
+expect_equal(max(land$AgeLengthCov$Metier5), length(unique(landings$Metier5)))
 
 warning("Add test for neighbour")
 
