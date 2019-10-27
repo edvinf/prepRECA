@@ -6,8 +6,9 @@ fishdata <- merge(fishdata, NORportsampling2018$SS, by="SSid")
 fishdata <- merge(fishdata, NORportsampling2018$LE, by="LEid", suffixes = c("", ".LE"))
 fishdata <- fishdata[!is.na(fishdata$Age),]
 fishdata$CatchSampleId <- fishdata$LEid
+fishdata$sampleId <- fishdata$SAid
 fishdata$Metier5 <- fishdata$LEmetier5
-fishdata <- fishdata[,c("CatchSampleId", "Age", "Weight", "Length", "Metier5")]
+fishdata <- fishdata[,c("CatchSampleId", "sampleId", "Age", "Weight", "Length", "Metier5")]
 
 landings <- CLCodHadNOR
 landings <- landings[landings$Species == "126437",]
