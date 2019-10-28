@@ -103,6 +103,31 @@ expect_equal(max(land$AgeLengthCov$Metier5), length(unique(landings$Metier5)))
 expect_true(all(c("Metier5", "midseason") %in% names(land$AgeLengthCov)))
 expect_true(all(c("Metier5", "midseason") %in% names(land$WeightLengthCov)))
 
-warning("Add test for neighbour")
+
+context("test getNeighbours: simple run")
+covMap <- list()
+covMap[[1]] <- "a"
+covMap[[2]] <- "b"
+covMap[[3]] <- "c"
+neighbours <- list()
+neighbours[["a"]] <- c("b","c")
+neighbours[["b"]] <- c("a")
+neighbours[["c"]] <- c("a")
+neighboursECA <- getNeighbours(neighbours, covMap)
+expect_equal(neighboursECA$numNeighbours, c(2,1,1))
+expect_equal(neighboursECA$idNeighbours, c(2,3,1,1))
+
+context("test prepRECA: CAR effect")
+carefftest <- fishdata[1:1000,]
+carefftestland <- landings
+dummycareff <- unique(carefftest[,c("catchId")])
+dummycareff$dummyArea <- c(rep(c("a", "b", "c"), nrow(dummycareff)/3), "a")
+carefftest <- merge(carefftest, dummycareff)
+carefftestland$dummyArea <- c(rep(c("a", "b", "c"), nrow(carefftestland)/3), "a", "a")
+RECAobj <- prepRECA(carefftest, carefftestland, c("Metier5"), c("vessel"), "dummyArea", neighbours = neighbours, month=landings$Month)
+expect_equal(RECAobj$AgeLength$CARNeighbours$numNeighbours, c(2,1,1))
+expect_equal(RECAobj$AgeLength$CARNeighbours$idNeighbours, c(2,3,1,1))
+expect_true(all(RECAobj$AgeLength$CovariateMatrix$dummyArea %in% c(1,2,3)))
+expect_error(prepRECA(carefftest, landings, c("Metier5"), c("vessel"), "dummyArea", neighbours = neighbours, month=landings$Month)) #CAR not in landings
 
 warning("Add test for Age error")

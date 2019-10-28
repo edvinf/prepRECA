@@ -15,8 +15,8 @@ checkAllSampled <- function(landings, samples, fixedEffects){
 
   if (length(fixedEffects) > 1){
     for (f in fixedEffects[2:length(fixedEffects)]){
-      landingsfixed <- paste(landingsfixed, landings[f], sep="/")
-      samplesfixed <- paste(samplesfixed, samples[f], sep="/")
+      landingsfixed <- paste(landingsfixed, landings[[f]], sep="/")
+      samplesfixed <- paste(samplesfixed, samples[[f]], sep="/")
     }
   }
 
@@ -27,7 +27,7 @@ checkAllSampled <- function(landings, samples, fixedEffects){
 #' @noRd
 checkAllSampledCar <- function(landings, samples, fixedEffects, carEffect, neighbours){
 
-  for (l in landings[[carEffect]]){
+  for (l in unique(landings[[carEffect]])){
     landcar <- landings[landings[[carEffect]] == l,]
     sampcar <- samples[samples[[carEffect]] %in% c(l, neighbours[l]),]
     sampcar[[carEffect]] <- l
@@ -70,7 +70,7 @@ getCovariateMap <- function(covariate, samples, landings){
   map <- list()
   i <- 1
   for (v in values){
-    map[i] <- v
+    map[[i]] <- v
     i <- i + 1
   }
 
@@ -225,12 +225,25 @@ getCovariateMatrix <- function(samples, covariates, covariatesMap){
   return(samples)
 }
 
+#' @param neighbours list mapping values of covariate with CAR effect to list of neighbours (symmetric)
+#' @param covariateMap covariate Map for CAR effect
 #' @noRd
-getNeighbours <- function(neighbours){
+getNeighbours <- function(neighbours, covariateMap){
   if (is.null(neighbours)){
     return(NULL)
   }
-  warning("getNeighbours not implemented")
+
+  if (length(neighbours) != length(covariateMap)){
+    stop("length of neighbours does not match length of covariateMap")
+  }
+  CARNeigbours <- list()
+  CARNeigbours$numNeighbours <- c()
+  CARNeigbours$idNeighbours <- c()
+  for (i in 1:length(covariateMap)){
+    CARNeigbours$numNeighbours <- c(CARNeigbours$numNeighbours, length(neighbours[[covariateMap[[i]]]]))
+    CARNeigbours$idNeighbours <- c(CARNeigbours$idNeighbours, match(neighbours[[covariateMap[[i]]]], covariateMap))
+  }
+  return(CARNeigbours)
 }
 
 #' Formats landings for R-ECA.
@@ -411,8 +424,8 @@ prepRECA <- function(samples, landings, fixedEffects, randomEffects, carEffect=N
     }
 
     for (l in names(neighbours)){
-      for (n in neighbours[l]){
-        if (!(n %in% names(neighbours) | l %in% neighbours[n]))
+      for (n in neighbours[[l]]){
+        if (!(n %in% names(neighbours) | l %in% c(neighbours[[n]])))
           stop(paste("neighbours not symmetric wrp",l,n))
       }
     }
@@ -437,7 +450,7 @@ prepRECA <- function(samples, landings, fixedEffects, randomEffects, carEffect=N
   }
 
   if (is.null(lengthResolution)){
-    lengthDiffs<-abs(outer(samples$Length[1:testMax], samples$Length[1:testMax], "-"))
+    lengthDiffs <- abs(outer(samples$Length[1:testMax], samples$Length[1:testMax], "-"))
     lengthResolution <- min(lengthDiffs[lengthDiffs != 0])
   }
 
@@ -483,7 +496,7 @@ prepRECA <- function(samples, landings, fixedEffects, randomEffects, carEffect=N
   AgeLength$DataMatrix <- ret$DataMatrix
   AgeLength$CovariateMatrix <- getCovariateMatrix(samples, c(fixedEffects, randomEffects, carEffect), covariateMaps)
   AgeLength$info <- info
-  AgeLength$CARNeighbours <- getNeighbours(neighbours)
+  AgeLength$CARNeighbours <- getNeighbours(neighbours, covariateMaps[[carEffect]])
   AgeLength$AgeErrorMatrix <- ageError
   AgeLength$CCerrorList <- NULL # CC (stock splitting) not supported
   covariateMaps$AgeLengthCatchId <- ret$catchIdMap
