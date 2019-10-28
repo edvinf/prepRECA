@@ -613,6 +613,86 @@ checkEcaObj <- function(RECAobj){
   return(obj)
 }
 
+#' @noRd
+fixCov <- function(cov, covariateMaps, model){
+  for (n in names(cov)[names(cov) != "cell"]){ #deal with cell later
+    if (n %in% names(covariateMaps$inLandings)){
+      map <- covariateMaps$inLandings[[n]]
+    }
+    else if (n %in% names(covariateMaps$randomEffects[[model]])){
+      map <- covariateMaps$randomEffects[[model]][[n]]
+    }
+
+    dimm <- dim(cov[[n]])
+    stopifnot(length(dimm) == 3)
+
+    if (n == "constant"){
+      dimnames(cov[[n]]) <- list(1:dimm[[1]], 1:dimm[[2]], 1:dimm[[3]])
+    }
+    else{
+      dimnames(cov[[n]]) <- list(1:dimm[[1]], unlist(map[1:dimm[[2]]]), 1:dimm[[3]]) #first dimension is one, expect for Prop at age, when it is the age groups
+    }
+
+  }
+  return(cov)
+}
+
+#' @noRd
+fixCar <- function(car, careffect){
+  if (is.null(car)){
+    return(NULL)
+  }
+  if (names(car) == c("spatial")){
+    names(car) = c(careffect)
+  }
+  return(car)
+}
+
+#' @noRd
+addCellCovariateMap <- function(covariateMap, infoMatrix){
+  cellMemb <- rownames(infoMatrix[infoMatrix[,"interaction"] == 1,])
+  stop("Not implemented. Need doc update.")
+}
+
+#' Rename R-ECA output
+#' @description Renames output returned from \code{\link[Reca]{eca.estimate}},
+#' so that covariate names and levels correspond to those used in data fed to \code{\link{prepRECA}{prepRECA}}
+#' @param fit as returned from \code{\link[Reca]{eca.estimate}},
+#' @param covariateMaps as returned from \code{\link{prepRECA}{prepRECA}}
+#' @param careffect name of careffect
+#' @noRd
+renameRecaOutput <- function(ecafit, covariateMaps, careffect){
+  stop("Need doc update for cell effects before this can be finalized. Add tests.")
+  for (model in names(ecafit)){
+    if ("Intercept" %in% names(ecafit[[model]])){
+      for (p in names(ecafit[[model]][["Intercept"]])){
+        if ("catchSample" %in% names(ecafit[[model]][["Intercept"]][[p]])){
+          ecafit[[model]][["Intercept"]][[p]][["catchId"]] <- ecafit[[model]][["Intercept"]][["catchSample"]]
+          ecafit[[model]][["Intercept"]][[p]][["catchSample"]] <- NULL
+        }
+      }
+    }
+    if ("Slope" %in% names(ecafit[[model]])){
+      for (p in names(ecafit[[model]][["Slope"]])){
+        if ("catchSample" %in% names(ecafit[[model]][["Slope"]][[p]])){
+          ecafit[[model]][["Slope"]][["cov"]][[p]][["catchId"]] <- ecafit[[model]][["Slope"]][["catchSample"]]
+          ecafit[[model]][["Slope"]][["cov"]][[p]][["catchSample"]] <- NULL
+        }
+      }
+    }
+
+    for (reg in c("Intercept", "Slope")){
+      if ("cov" %in% names(ecafit[[model]][[reg]])){
+        ecafit[[model]][[reg]][["cov"]] <- fixCov(ecafit[[model]][[reg]][["cov"]], covariateMaps, model)
+      }
+      if ("CAR" %in% names(ecafit[[model]][[reg]])){
+        ecafit[[model]][[reg]][["CAR"]] <- fixCar(ecafit[[model]][[reg]][["CAR"]], careffect)
+      }
+    }
+  }
+  return(ecafit)
+}
+
 #' Run R-ECA
 #' @description Runs \code{\link[Reca]{eca.estimate}} and \code{\link[Reca]{eca.predict}}.
 #' @details
@@ -688,7 +768,7 @@ runRECA <- function(RecaObj, nSamples, burnin, lgamodel="log-linear", fitfile="f
       out <- list()
       out$fit <- fit
       out$prediction <- pred
-      out$covariateMaps <- RecaObj$covariateMaps
+      out$covariateMaps <- RecaObj$CovariateMaps
     }
     ,
     finally={
@@ -703,6 +783,8 @@ runRECA <- function(RecaObj, nSamples, burnin, lgamodel="log-linear", fitfile="f
     }
   )
 
+  #put col and rownames on Intercept$Cov, Slope$Cov
+  #change name of catchsample in output
 
   return(out)
 }

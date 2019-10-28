@@ -393,7 +393,7 @@ getEcaPrepExample <- function(){
   landings$LiveWeightKG <- landings$OfficialLandingsWeight
   landings$quarter <- paste("Q", landings$Quarter, sep="")
 
-  RECAobj <- prepRECA::prepRECA(fishdata[1:100,], landings, NULL, c("Metier5", "vessel"), NULL, neighbours = NULL, quarter=landings$Quarter, nFish = NULL)
+  RECAobj <- prepRECA::prepRECA(fishdata[1:100,], landings, NULL, c("Metier5", "quarter"), NULL, neighbours = NULL, quarter=landings$Quarter, nFish = NULL)
 
   return(RECAobj)
 
