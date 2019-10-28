@@ -289,6 +289,7 @@ getNeighbours <- function(neighbours, covariateMap){
 #'  samples <- prepRECA::NORportsampling2018$LE
 #'  samples$Metier5 <- samples$LEmetier5
 #'  landings <- CLCodHadNOR
+#'  landings$LiveWeightKG <- landings$OfficialLandingsWeight
 #'  landings$Metier5 <- landings$FishingActivityCategoryEuropeanLvl5
 #'  covMap <- getCovariateMap("Metier5", samples, landings)
 #'  getLandings(landings, c("Metier5"), covMap, month=landings$Month)
@@ -366,6 +367,8 @@ getLandings <- function(landings, covariates, covariateMaps, date=NULL, month=NU
 #'  Provide exactly one of these, and set the other ones to NULL.
 #'  Temporal resolution need not match any temporal covariate used.
 #'  One can for example run with month, even if Quarter is a covariate in the model.
+#'  Note that resolution is sensitive to data volume. If you get errors in prediction with E_p(a) = nan,
+#'  consider trying with quarter.
 #'
 #'  neighbours must be symetric, so that b \%in\% neighbours[a], implies a \%in\% neighbours[b]
 #'
