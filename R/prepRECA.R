@@ -184,7 +184,8 @@ getDataMatrixAgeLength <- function(samples, nFish=NULL){
   catchidMap <- unique(DataMatrix[,c("catchId", "samplingID")])
 
   DataMatrix$otolithtype <- NA
-  DataMatrix <- DataMatrix [,c("age", "part.year", "lengthCM", "samplingID", "partnumber", "partcount", "otolithtype")]
+  DataMatrix$otolithtype <- as.integer(DataMatrix$otolithtype)
+  DataMatrix <- DataMatrix [,c("age",  "part.year", "lengthCM", "samplingID", "partnumber", "otolithtype", "partcount")]
 
   ret <- list()
   ret$DataMatrix <- DataMatrix
@@ -208,7 +209,8 @@ getDataMatrixWeightLength <- function(samples, nFish=NULL){
   catchidMap <- unique(DataMatrix[,c("catchId", "samplingID")])
 
   DataMatrix$otolithtype <- NA
-  DataMatrix <- DataMatrix [,c("weightKG",  "lengthCM", "samplingID", "partnumber", "partcount", "otolithtype")]
+  DataMatrix$otolithtype <- as.integer(DataMatrix$otolithtype)
+  DataMatrix <- DataMatrix [,c("weightKG", "lengthCM", "samplingID", "partnumber", "otolithtype", "partcount")]
 
   ret <- list()
   ret$DataMatrix <- DataMatrix
@@ -302,26 +304,46 @@ getLandings <- function(landings, covariates, covariateMaps, date=NULL, month=NU
 
   inlandings <- names(landings)[names(landings) %in% covariates]
 
+  aggList <- list()
+  for (cov in inlandings){
+    aggList[[cov]] <- landings[[cov]]
+  }
+  if (!is.null(date)){
+    aggList$tempres <- date
+  }
+  if (!is.null(month)){
+    aggList$tempres <- month
+  }
+  if (!is.null(quarter)){
+    aggList$tempres <- quarter
+  }
+
+
+  landings <- aggregate(list(LiveWeightKG=landings$LiveWeightKG), by=aggList, FUN=sum)
+
+
   for (cov in inlandings){
     landings[[cov]] <- match(landings[[cov]], covariateMaps[[cov]])
   }
 
   if (!is.null(date)){
-    landings$midseason <- (as.numeric(strftime(date, "%j"))+1)/366
+    landings$midseason <- (as.numeric(strftime(landings$tempres, "%j"))+1)/366
   }
   else if (!is.null(month)){
-    landings$midseason <- (month/12.0)-(1/24.0)
+    landings$midseason <- (landings$tempres/12.0)-(1/24.0)
   }
   else if (!is.null(quarter)){
-    landings$midseason <- (quarter/4.0)-(1/8.0)
+    landings$midseason <- (landings$tempres/4.0)-(1/8.0)
   }
   else{
     stop()
   }
+  landings$tempres <- NULL
+
+  landings <- data.table::as.data.table(landings)
 
   landings$constant <- 1
   inlandings <- c("constant", inlandings, "midseason")
-  #aggregate ?
 
   recaLandings <- list()
   recaLandings$AgeLengthCov <- landings[,..inlandings]
@@ -619,7 +641,7 @@ checkEcaObj <- function(RECAobj){
 #'  \item{covariateMaps}{list() mapping from Reca covariate encoding to values fed to \code{\link[prepRECA]{prepRECA}}. As on parameter 'RecaObj'}
 #' }
 #' @export
-runReca <- function(RecaObj, nSamples, burnin, lgamodel="log-linear", fitfile="fit", predictfile="pred", resultdir=NULL, thin=1, delta.age=0.001, seed=NULL, caa.burnin=0){
+runRECA <- function(RecaObj, nSamples, burnin, lgamodel="log-linear", fitfile="fit", predictfile="pred", resultdir=NULL, thin=1, delta.age=0.001, seed=NULL, caa.burnin=0){
 
   if (is.null(resultdir)){
     fpath <- file.path(tempdir(), "Recadir")
