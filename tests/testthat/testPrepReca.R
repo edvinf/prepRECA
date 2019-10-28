@@ -18,8 +18,6 @@ nFish$Weight <- NULL
 nFish$SAtotalWtLive <- NULL
 nFish <- unique(nFish)
 
-fishdata <- fishdata[,c("catchId", "sampleId", "date", "Age", "Weight", "Length", "Metier5", "vessel")]
-
 landings <- prepRECA::CLCodHadNOR
 landings <- landings[landings$Species == "126437",]
 landings$Metier5 <- landings$FishingActivityCategoryEuropeanLvl5
@@ -40,7 +38,7 @@ context("test prepRECA: missing column fixed effect")
 expect_error(prepRECA(fishdata, landings, c("gear"), NULL, NULL, month=landings$Month))
 
 context("test rEcaDataReport: minimal run")
-rEcaDataReport(fishdata, landings)
+rEcaDataReport(fishdata, landings, c("Metier5", "vessel"))
 
 context("test rEcaDataReport: no covariates")
 expect_error(rEcaDataReport(fsmin, lmin))
@@ -122,7 +120,7 @@ carefftest <- fishdata[1:1000,]
 carefftestland <- landings
 dummycareff <- unique(carefftest[,c("catchId")])
 dummycareff$dummyArea <- c(rep(c("a", "b", "c"), nrow(dummycareff)/3), "a")
-carefftest <- merge(carefftest, dummycareff)
+carefftest <- merge(carefftest, dummycareff, by="catchId")
 carefftestland$dummyArea <- c(rep(c("a", "b", "c"), nrow(carefftestland)/3), "a", "a")
 RECAobj <- prepRECA(carefftest, carefftestland, c("Metier5"), c("vessel"), "dummyArea", neighbours = neighbours, month=landings$Month)
 expect_equal(RECAobj$AgeLength$CARNeighbours$numNeighbours, c(2,1,1))

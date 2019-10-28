@@ -534,10 +534,10 @@ prepRECA <- function(samples, landings, fixedEffects, randomEffects, carEffect=N
 #' Data report for R-ECA preparation
 #' @description
 #'  Generates overview of samples to inform on sample availability in potential cell definitions.
-#'  Informs on which covariates may be fixed effects, and how grouping of covariates is best done for random effects.
+#'  Informs on which columns maybe be used as fixed effect covariates, and how grouping of covariates is best done for random effects.
 #'
-#'  The columns in landings define the cells.
-#'  For each cell the total landed weight is reported, along with the number of unique occurances of covariates not in landings (including Catchsample).
+#'  The covariates in landings define the cells.
+#'  For each cell the covariates defining the cell is reported, before the total landed weight, along with the number of unique occurances of covariates not in landings (including catchId and sampleId).
 #'  Lastly the number of fish measurements for Age, Weight and Length is reported.
 #'
 #' @param samples data.table() with samples (as in \code{\link[prepRECA]{prepRECA}}), each row corresponding to one sampled fish. Contains columns:
@@ -553,8 +553,9 @@ prepRECA <- function(samples, landings, fixedEffects, randomEffects, carEffect=N
 #' @param landings data.table() with total landings (as in \code{\link[prepRECA]{prepRECA}}), each row corresponding to one cell. Contains columns:
 #' \describe{
 #'  \item{LiveWeightKG}{numeric(). Total landings (Live/Round weight in Kg) for the cell}
-#'  \item{...}{Additional columns which may be used as covariates. Only reported if present in samples as well. These will define each cell.}
+#'  \item{...}{Additional columns which may be used as covariates. These will define each cell.}
 #' }
+#' @param covariates character() vector of columns to consider for covariates.
 #' @return data.table() with columns
 #' \describe{
 #'  \item{<Covariates in landings>}{one column for each. Defines the cells.}
@@ -577,13 +578,12 @@ prepRECA <- function(samples, landings, fixedEffects, randomEffects, carEffect=N
 #'  samples$sampleId <- samples$SAid
 #'  samples$date <- samples$LEdate
 #'  samples$Metier5 <- samples$LEmetier5
-#'  samples <- samples[,c("catchId", "sampleId", "date", "Age", "Length", "Weight", "Metier5", "VDencrCode")]
 #'  landings <- prepRECA::CLCodHadNOR
 #'  landings$LiveWeightKG <- landings$OfficialLandingsWeight
 #'  landings$Metier5 <- landings$FishingActivityCategoryEuropeanLvl5
-#'  rEcaDataReport(samples, landings)
+#'  rEcaDataReport(samples, landings, c("Metier5", "VDencrCode"))
 #' @export
-rEcaDataReport <- function(samples, landings){
+rEcaDataReport <- function(samples, landings, covariates){
   # check mandatory columns
   if (!(all(c("LiveWeightKG") %in% names(landings)))){
     stop("Column LiveWeightKG is mandatory in landings")
@@ -596,11 +596,13 @@ rEcaDataReport <- function(samples, landings){
     stop("sampleID must be unique identifier, irrespective of catchId")
   }
 
-  insamples <- names(samples)
-  insamples <- insamples[!(insamples %in% c("catchId", "sampleId", "date", "Age", "Length", "Weight"))]
+  if (!all(covariates %in% names(samples))){
+    stop("Only columns that exist in samples may be used as covariates")
+  }
 
-  inlandings <- names(landings)[names(landings) %in% insamples]
-  inlandings <- inlandings[!(inlandings %in% c("LiveWeightKG"))]
+  insamples <- covariates
+
+  inlandings <- covariates[covariates %in% names(landings)]
 
   if (length(inlandings) == 0){
     stop("No covariates in landings. Cannot produce report.")
