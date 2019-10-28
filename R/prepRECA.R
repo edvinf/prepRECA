@@ -20,7 +20,7 @@ checkAllSampled <- function(landings, samples, fixedEffects){
     }
   }
 
-  return(all(samplesfixed %in% landingsfixed))
+  return(all(landingsfixed %in% samplesfixed))
 }
 
 #' Check that all fixed effects are sampled in combination with carEffect or neighbout
@@ -80,9 +80,9 @@ getCovariateMap <- function(covariate, samples, landings){
 #' @noRd
 getInfoMatrix <- function(samples, landings, fixedEffects, randomEffects, carEffect){
   info <- matrix(ncol=7, nrow=length(c(fixedEffects, randomEffects, carEffect))+1)
-  colnames(info) <- c("random", "CAR", "continous", "in.landings", "nlev", "interaction", "in.slopeModel")
+  colnames(info) <- c("random", "CAR", "continuous", "in.landings", "nlev", "interaction", "in.slopeModel")
   rownames(info) <- c("constant", c(fixedEffects, randomEffects, carEffect))
-  info[1,] <- c(0,0,0,0,1,0,0)
+  info[1,] <- c(0,0,0,1,1,0,1)
   i <- 2
   if (!is.null(fixedEffects) & length(fixedEffects) > 0){
     for (e in fixedEffects){
@@ -109,7 +109,7 @@ getInfoMatrix <- function(samples, landings, fixedEffects, randomEffects, carEff
     if (carEffect %in% names(landings)){
       inl <- 1
     }
-    info[i,] <- c(1,1,0,inl,length(unique(c(samples[[e]], landings[[e]]))), inl, 0)
+    info[i,] <- c(1,1,0,inl,length(unique(c(samples[[carEffect]], landings[[carEffect]]))), inl, 0)
     i <- i+1
   }
   return(info)
@@ -145,8 +145,8 @@ addPartCount <- function(DataMatrix, nFish){
 
 #' @noRd
 addSamplingId <- function(DataMatrix){
-  mapping <- data.table(catchId=unique(DataMatrix$catchId), samplingID=seq(1,length(unique(DataMatrix$catchId))))
-  return(data.table::as.data.table(merge(DataMatrix, mapping, by="catchId")))
+  mapping <- data.table::data.table(catchId=unique(DataMatrix$catchId), samplingID=seq(1,length(unique(DataMatrix$catchId))))
+  return(data.table::as.data.table(merge(DataMatrix, mapping, by="catchId", all.x=T)))
 }
 
 #' @noRd
@@ -164,11 +164,11 @@ formatCatchIdMap <- function(catchidmap){
 #' then renames and recodes (preserving order)
 #' @noRd
 getDataMatrixAgeLength <- function(samples, nFish=NULL){
-
   DataMatrix <- samples[,c("catchId", "sampleId", "date", "Age", "Length", "Weight")]
   DataMatrix$date <- (as.numeric(strftime(DataMatrix$date, "%j"))+1)/366
   DataMatrix <- DataMatrix[,c("Age", "date", "Length", "catchId", "sampleId")]
   DataMatrix <- addPartCount(DataMatrix, nFish)
+  DataMatrix <- DataMatrix[,c("Age", "date", "Length", "catchId", "sampleId", "partcount")]
   names(DataMatrix) <- c("age", "part.year", "lengthCM", "catchId", "partnumber", "partcount")
   DataMatrix <- addSamplingId(DataMatrix)
   DataMatrix <- DataMatrix[order(DataMatrix$catchId),]
@@ -193,6 +193,7 @@ getDataMatrixWeightLength <- function(samples, nFish=NULL){
   DataMatrix <- samples[,c("catchId", "sampleId", "Age", "Length", "Weight")]
   DataMatrix <- DataMatrix[,c("Weight", "Length", "catchId", "sampleId")]
   DataMatrix <- addPartCount(DataMatrix, nFish)
+  DataMatrix <- DataMatrix[,c("Weight", "Length", "catchId", "sampleId", "partcount")]
   names(DataMatrix) <- c("weightKG",  "lengthCM", "catchId", "partnumber", "partcount")
   DataMatrix <- addSamplingId(DataMatrix)
   DataMatrix <- DataMatrix[order(DataMatrix$catchId),]
@@ -302,7 +303,8 @@ getLandings <- function(landings, covariates, covariateMaps, date=NULL, month=NU
     stop()
   }
 
-  inlandings <- c(inlandings, "midseason")
+  landings$constant <- 1
+  inlandings <- c("constant", inlandings, "midseason")
   #aggregate ?
 
   recaLandings <- list()
@@ -405,7 +407,7 @@ prepRECA <- function(samples, landings, fixedEffects, randomEffects, carEffect=N
     if (!all(fixedEffects %in% names(landings))){
       stop(paste("Data missing for fixed effects (landings):", paste(fixedEffects[!(fixedEffects %in% names(landings))], collapse=",")))
     }
-    if (!checkAllSampled(landings, samples[!is.na(samples$Age)], fixedEffects)){
+    if (!checkAllSampled(landings, samples, fixedEffects)){
       stop("Not all combinations of fixed effects are sampled for Age")
     }
     if (!checkAllSampled(landings, samples[!is.na(samples$Weight)], fixedEffects)){
@@ -508,11 +510,11 @@ prepRECA <- function(samples, landings, fixedEffects, randomEffects, carEffect=N
   covariateMaps$AgeLengthCatchId <- ret$catchIdMap
 
   WeightLength <- list()
-  ret <- getDataMatrixWeightLength(samples[!is.na(samples$Weight),])
+  ret <- getDataMatrixWeightLength(samples[!is.na(samples$Weight),], nFish)
   WeightLength$DataMatrix <- ret$DataMatrix
   WeightLength$CovariateMatrix <- getCovariateMatrix(samples[!is.na(samples$Weight),], c(fixedEffects, randomEffects, carEffect), covariateMaps)
   WeightLength$info <- info
-  # CARNeighbours are taken from AgeLength
+  WeightLength$CARNeighbours <- getNeighbours(neighbours, covariateMaps[[carEffect]])
   covariateMaps$WeightLengthCatchId <- ret$catchIdMap
 
   Landings <- getLandings(landings, c(fixedEffects, randomEffects, carEffect), covariateMaps, date, month, quarter)
@@ -535,6 +537,113 @@ prepRECA <- function(samples, landings, fixedEffects, randomEffects, carEffect=N
   ret$CovariateMaps <- covariateMaps
 
   return(ret)
+}
+
+#' Run data checks and converts data.table to data.frame
+#' @noRd
+checkEcaObj <- function(RECAobj){
+  obj <- RECAobj
+  obj$AgeLength$DataMatrix <- as.data.frame(obj$AgeLength$DataMatrix)
+  obj$AgeLength$CovariateMatrix <- as.data.frame(obj$AgeLength$CovariateMatrix)
+  obj$WeightLength$DataMatrix <- as.data.frame(obj$WeightLength$DataMatrix)
+  obj$WeightLength$CovariateMatrix <- as.data.frame(obj$WeightLength$CovariateMatrix)
+  obj$Landings$AgeLengthCov <- as.data.frame(obj$Landings$AgeLengthCov)
+  obj$Landings$WeightLengthCov <- as.data.frame(obj$Landings$WeightLengthCov)
+
+  checkAgeLength(obj$AgeLength)
+  checkWeightLength(obj$WeightLength)
+  checkCovariateConsistency(obj$AgeLength, obj$Landings$AgeLengthCov)
+  checkCovariateConsistency(obj$WeightLength, obj$Landings$WeightLengthCov)
+  checkLandings(obj$Landings)
+
+  return(obj)
+}
+
+#' Run R-ECA
+#' @description Runs \code{\link[Reca]{eca.estimate}} and \code{\link[Reca]{eca.predict}}.
+#' @details
+#'  \code{\link[Reca]{eca.estimate}} performs Markov-chain Monte Carlo (MCMC) simulations to determine maximum likelihood of parameters for the given samples.
+#'
+#'  \code{\link[Reca]{eca.predict}} samples the posterior distributions of parameters estimated in \code{\link[Reca]{eca.estimate}},
+#'  in order to obtain proportinos of catches and fish parameters.
+#'  Using these parameters and the given total landings, predictions of distribution of catch-parameter distributions will be calculated.
+#'
+#'  If both fitdir and resultdir are NULL, temporary directories will be created for their purpose.
+#'  These will be attempted removed after execution.
+#'  If removal is not successful a warning will be issued which includes the path to the temporary directory.
+#'
+#' @param RecaObj as returned from \code{\link[prepRECA]{prepRECA}}
+#' @param nSamples number of MCMC samples that will be made available for \code{\link[Reca]{eca.predict}}. See documentation for \code{\link[Reca]{eca.estimate}},
+#' @param burnin number of MCMC samples run and discarded by \code{\link[Reca]{eca.estimate}} before any samples are saved. See documentation for \code{\link[Reca]{eca.estimate}}.
+#' @param lgamodel The length age relationship to use for length-age fits (options: "log-linear", "non-linear": Schnute-Richards model). See documentation for \code{\link[Reca]{eca.estimate}}.
+#' @param fitdir a directory where Reca may store temp-files for \code{\link[Reca]{eca.estimate}}. If NULL, a temporary directory will be created. See documentation for \code{\link[Reca]{eca.estimate}}.
+#' @param resultdir a directory where Reca may store temp-files \code{\link[Reca]{eca.estimate}} and \code{\link[Reca]{eca.predict}}. . If NULL, a temporary directory will be created. See documentation for \code{\link[Reca]{eca.estimate}}.
+#' @param thin see documentation for \code{\link[Reca]{eca.estimate}}
+#' @param delta.age see documentation for \code{\link[Reca]{eca.estimate}}
+#' @param seed see documentation for \code{\link[Reca]{eca.estimate}}
+#' @param caa.burnin see documentation for \code{\link[Reca]{eca.predict}}
+#' @return list() with elements:
+#' \describe{
+#'  \item{fit}{as returned by \code{\link[Reca]{eca.estimate}}}
+#'  \item{prediction}{as returned by \code{\link[Reca]{eca.predict}}}
+#'  \item{covariateMaps}{list() mapping from Reca covariate encoding to values fed to \code{\link[prepRECA]{prepRECA}}. As on parameter 'RecaObj'}
+#' }
+#' @export
+runReca <- function(RecaObj, nSamples, burnin, lgamodel="log-linear", fitdir=NULL, resultdir=NULL, thin=1, delta.age=0.001, seed=NULL, caa.burnin=0){
+
+  RecaObj <- checkEcaObj(RecaObj)
+
+  if (sum(c(is.null(fitdir), is.null(resultdir))) == 1){
+    stop("Provide both fitdir and resultdir, or neither of them")
+  }
+  if (is.null(fitdir) & is.null(resultdir)){
+    fpath <- file.path(tempdir(), "Recadir")
+    if (dir.exists(fpath)){
+      unlink(fpath, recursive = T)
+    }
+    dir.create(Recadir <- fpath)
+    dir.create(fitdir <- file.path(Recadir, "fitdir"))
+    dir.create(resultdir <- file.path(Recadir, "resultdir"))
+    write("Tempfiles created at:", stderr())
+    write(fitdir, stderr())
+    write(resultdir, stderr())
+  }
+  tryCatch(
+    {
+      GlobalParameters <- RecaObj$GlobalParameters
+      GlobalParameters$nSamples <- nSamples
+      GlobalParameters$burnin <- burnin
+      GlobalParameters$lgamodel <- lgamodel
+      GlobalParameters$fitdir <- fitdir
+      GlobalParameters$resultdir <- resultdir
+      GlobalParameters$thin <- thin
+      GlobalParameters$delta.age <- delta.age
+      GlobalParameters$seed <- seed
+      GlobalParameters$caa.burnin <- caa.burnin
+
+      fit <- Reca::eca.estimate(RecaObj$AgeLength, RecaObj$WeightLength, RecaObj$Landings, GlobalParameters)
+      pred <- Reca::eca.predict(RecaObj$AgeLength, RecaObj$WeightLength, RecaObj$Landings, GlobalParameters)
+
+      out <- list()
+      out$fit <- fit
+      out$prediction <- pred
+      out$covariateMaps <- RecaObj$covariateMaps
+    }
+    ,
+    finally={
+      if (is.null(fitdir) & is.null(resultdir)){
+        unlink(Recadir, recursive = T)
+        write("Removing tempdir:", stderr())
+        write(Recadir, stderr())
+        if (dir.exists(Recadir)){
+          warning(paste("Could not remove tempdir: ", Recadir))
+        }
+      }
+    }
+  )
+
+
+  return(out)
 }
 
 #' Data report for R-ECA preparation

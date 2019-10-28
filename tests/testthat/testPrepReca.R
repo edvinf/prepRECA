@@ -5,11 +5,13 @@ fishdata <- merge(fishdata, SA, by="SAid")
 fishdata <- merge(fishdata, prepRECA::NORportsampling2018$SS, by="SSid")
 fishdata <- merge(fishdata, prepRECA::NORportsampling2018$LE, by="LEid", suffixes = c("", ".LE"))
 fishdata <- merge(fishdata, prepRECA::NORportsampling2018$VD, by="VDid")
+fishdata <- merge(fishdata, prepRECA::NORportsampling2018$OS, by="OSid")
 fishdata <- fishdata[!is.na(fishdata$Age),]
 fishdata$catchId <- fishdata$LEid
 fishdata$sampleId <- fishdata$SAid
 fishdata$Metier5 <- fishdata$LEmetier5
 fishdata$vessel <- fishdata$VDencrCode
+fishdata$quarter <- fishdata$OSstratum
 fishdata$date <- fishdata$LEdate
 
 nFish <- fishdata[1000:nrow(fishdata),c("sampleId", "SAtotalWtLive", "Weight")]
@@ -18,15 +20,29 @@ nFish$Weight <- NULL
 nFish$SAtotalWtLive <- NULL
 nFish <- unique(nFish)
 
+nFishAll <- fishdata[,c("sampleId", "SAtotalWtLive", "Weight")]
+nFishAll$count <- nFishAll$SAtotalWtLive/mean(nFishAll$Weight, na.rm=T)
+nFishAll$Weight <- NULL
+nFishAll$SAtotalWtLive <- NULL
+nFishAll <- unique(nFishAll)
+
 landings <- prepRECA::CLCodHadNOR
 landings <- landings[landings$Species == "126437",]
 landings$Metier5 <- landings$FishingActivityCategoryEuropeanLvl5
 landings$LiveWeightKG <- landings$OfficialLandingsWeight
+landings$quarter <- paste("Q", landings$Quarter, sep="")
 
 context("test prepRECA: minimal run")
 
-prepRECA(fishdata[1:1000], landings, NULL, NULL, NULL, month=landings$Month)
-prepRECA(fishdata[1:1000], landings, c("Metier5"), c("vessel"), NULL, month=landings$Month)
+minRobj <- prepRECA(fishdata[1:1000], landings, NULL, NULL, NULL, month=landings$Month)
+expect_equal(max(minRobj$AgeLength$DataMatrix$samplingID), nrow(minRobj$AgeLength$CovariateMatrix))
+expect_equal(max(minRobj$WeightLength$DataMatrix$samplingID), nrow(minRobj$WeightLength$CovariateMatrix))
+expect_error(prepRECA(fishdata[1:1000], landings, c("Metier5"), c("vessel"), NULL, month=landings$Month)) #fixed effect issue
+prepRECA(fishdata[1:1000], landings[landings$Quarter < 3,], c("quarter"), c("vessel"), NULL, month=landings[landings$Quarter < 3,][["Month"]])
+
+minRobj <- prepRECA(fishdata, landings, NULL, NULL, NULL, month=landings$Month, nFish = nFishAll)
+expect_equal(max(minRobj$AgeLength$DataMatrix$samplingID), nrow(minRobj$AgeLength$CovariateMatrix))
+expect_equal(max(minRobj$WeightLength$DataMatrix$samplingID), nrow(minRobj$WeightLength$CovariateMatrix))
 
 context("test prepRECA: missing spec")
 expect_error(prepRECA(fishdata, landings, NULL, NULL, NULL, month=landings$Month))
@@ -122,18 +138,18 @@ dummycareff <- unique(carefftest[,c("catchId")])
 dummycareff$dummyArea <- c(rep(c("a", "b", "c"), nrow(dummycareff)/3), "a")
 carefftest <- merge(carefftest, dummycareff, by="catchId")
 carefftestland$dummyArea <- c(rep(c("a", "b", "c"), nrow(carefftestland)/3), "a", "a")
-RECAobj <- prepRECA(carefftest, carefftestland, c("Metier5"), c("vessel"), "dummyArea", neighbours = neighbours, month=landings$Month)
+RECAobj <- prepRECA(carefftest, carefftestland, NULL, c("Metier5", "vessel"), "dummyArea", neighbours = neighbours, month=landings$Month)
 expect_equal(RECAobj$AgeLength$CARNeighbours$numNeighbours, c(2,1,1))
 expect_equal(RECAobj$AgeLength$CARNeighbours$idNeighbours, c(2,3,1,1))
 expect_true(all(RECAobj$AgeLength$CovariateMatrix$dummyArea %in% c(1,2,3)))
 
 context("test prepRECA: CAR effect errors")
-expect_error(prepRECA(carefftest, landings, c("Metier5"), c("vessel"), "dummyArea", neighbours = neighbours, month=landings$Month)) #CAR not in landings
-expect_error(prepRECA(carefftest, landings, c("Metier5"), c("vessel"), NULL, neighbours = neighbours, month=landings$Month)) #neighbours with no CAR
+expect_error(prepRECA(carefftest, landings, NULL, c("Metier5", "vessel"), "dummyArea", neighbours = neighbours, month=landings$Month)) #CAR not in landings
+expect_error(prepRECA(carefftest, landings, NULL, c("Metier5", "vessel"), NULL, neighbours = neighbours, month=landings$Month)) #neighbours with no CAR
 
 context("test prepRECA: age error simple run")
 ageErr <- matrix(c(.8,.2,.2,.8), nrow=2, dimnames=list(c(1,2), c(1,2)))
-RECAobj <- prepRECA(fishdata[is.na(fishdata$Age) | fishdata$Age %in% c(1,2),], landings, c("Metier5"), c("vessel"), NULL, month=landings$Month, ageError = ageErr, minAge=1, maxAge = 2)
+RECAobj <- prepRECA(fishdata[is.na(fishdata$Age) | fishdata$Age %in% c(1,2),], landings, NULL, c("Metier5", "vessel"), NULL, month=landings$Month, ageError = ageErr, minAge=1, maxAge = 2)
 expect_equal(nrow(RECAobj$AgeLength$AgeErrorMatrix),2)
 
 context("test prepRECA: age error with matrix errors")
@@ -141,3 +157,8 @@ expect_error(prepRECA(fishdata, landings, c("Metier5"), c("vessel"), NULL, month
 ageErr <- matrix(c(.8,.2,.1,.8), nrow=2, dimnames=list(c(1,2), c(1,2)))
 expect_error( prepRECA(fishdata[is.na(fishdata$Age) | fishdata$Age %in% c(1,2),], landings, c("Metier5"), c("vessel"), NULL, month=landings$Month, ageError = ageErr, minAge=1, maxAge = 2)) # ageError matrix does not sum to 1
 
+warning("Test for constant in landings and samples")
+
+warning("Test nlev for fixed effect")
+
+warning("Test nFish for error with all data. (Some slipped passed weight)")
