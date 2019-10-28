@@ -11,6 +11,13 @@ fishdata$sampleId <- fishdata$SAid
 fishdata$Metier5 <- fishdata$LEmetier5
 fishdata$vessel <- fishdata$VDencrCode
 fishdata$date <- fishdata$LEdate
+
+nFish <- fishdata[1000:nrow(fishdata),c("sampleId", "SAtotalWtLive", "Weight")]
+nFish$count <- nFish$SAtotalWtLive/mean(nFish$Weight, na.rm=T)
+nFish$Weight <- NULL
+nFish$SAtotalWtLive <- NULL
+nFish <- unique(nFish)
+
 fishdata <- fishdata[,c("catchId", "sampleId", "date", "Age", "Weight", "Length", "Metier5", "vessel")]
 
 landings <- prepRECA::CLCodHadNOR
@@ -66,6 +73,12 @@ expect_equal(max(dmWeightLength$DataMatrix$samplingID), length(unique(fishdata[1
 context("tets getDataMatrixWeightLength: nFish error")
 expect_error(getDataMatrixWeightLength(fishdata, NULL)) #delprøve on some sample
 
+context("tets getDataMatrixWeightLength: with nFish")
+expect_silent(dm <- getDataMatrixWeightLength(fishdata, nFish))
+expect_equal(nrow(dm$DataMatrix), nrow(fishdata))
+expect_gt(sum(!is.na(dm$DataMatrix$partcount)), 0)
+expect_gt(sum(is.na(dm$DataMatrix$partcount)), 0)
+
 context("tets CovariateMatrix: simple run")
 cv <- getCovariateMatrix(fishdata, c(), NULL)
 expect_equal(nrow(cv), length(unique(fishdata$catchId)))
@@ -91,7 +104,5 @@ expect_true(all(c("Metier5", "midseason") %in% names(land$AgeLengthCov)))
 expect_true(all(c("Metier5", "midseason") %in% names(land$WeightLengthCov)))
 
 warning("Add test for neighbour")
-
-warning("Add test for partcount")
 
 warning("Add test for Age error")

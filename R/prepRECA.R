@@ -120,12 +120,15 @@ getInfoMatrix <- function(samples, landings, fixedEffects, randomEffects, carEff
 addPartCount <- function(DataMatrix, nFish){
 
   # renumber sampleID to delprøve convention (needed ?)
-  DataMatrix$partcount <- NA
   partsamples <- aggregate(list(nSampleId=DataMatrix$sampleId), by=list(catchId=DataMatrix$catchId), FUN=function(x){length(unique(x))})
   partsamples <- partsamples[partsamples$nSampleId > 1,]
   partsamples <- merge(partsamples, unique(DataMatrix[,c("sampleId", "catchId")]))
 
-  if (nrow(partsamples) > 0){
+  if (nrow(partsamples) == 0){
+    DataMatrix$partcount <- NA
+    return(DataMatrix)
+  }
+  else if (nrow(partsamples) > 0){
     if (is.null(nFish)){
       stop(paste("Some cacthes are sampled several times, but argument 'nFish' not given."))
     }
@@ -134,15 +137,16 @@ addPartCount <- function(DataMatrix, nFish){
     }
     nFish$partcount <- nFish$count
     nFish$count <- NULL
-    DataMatrix <- merge(DataMatrix, nFish, by="sampleId")
+    DataMatrix <- merge(DataMatrix, nFish, by="sampleId", all.x=T)
+    return(DataMatrix)
   }
-  return(DataMatrix)
+
 }
 
 #' @noRd
 addSamplingId <- function(DataMatrix){
   mapping <- data.table(catchId=unique(DataMatrix$catchId), samplingID=seq(1,length(unique(DataMatrix$catchId))))
-  return(data.table::as.data.table(merge(DataMatrix, mapping)))
+  return(data.table::as.data.table(merge(DataMatrix, mapping, by="catchId")))
 }
 
 #' @noRd
