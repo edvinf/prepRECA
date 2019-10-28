@@ -43,9 +43,15 @@ prepRECA(fishdata[1:1000], landings[landings$Quarter < 3,], c("quarter"), c("ves
 minRobj <- prepRECA(fishdata, landings, NULL, NULL, NULL, month=landings$Month, nFish = nFishAll)
 expect_equal(max(minRobj$AgeLength$DataMatrix$samplingID), nrow(minRobj$AgeLength$CovariateMatrix))
 expect_equal(max(minRobj$WeightLength$DataMatrix$samplingID), nrow(minRobj$WeightLength$CovariateMatrix))
+expect_true(all(!is.na(minRobj$AgeLength$DataMatrix$partcount)))
+expect_true(all(!is.na(minRobj$WeightLength$DataMatrix$partcount)))
 
-context("test prepRECA: missing spec")
-expect_error(prepRECA(fishdata, landings, NULL, NULL, NULL, month=landings$Month))
+minRobj <- prepRECA(fishdata, landings, NULL, c("Metier5"), NULL, month=landings$Month, nFish = nFishAll)
+expect_equal(max(minRobj$AgeLength$DataMatrix$samplingID), nrow(minRobj$AgeLength$CovariateMatrix))
+expect_equal(max(minRobj$WeightLength$DataMatrix$samplingID), nrow(minRobj$WeightLength$CovariateMatrix))
+expect_true(all(!is.na(minRobj$AgeLength$DataMatrix$partcount)))
+expect_true(all(!is.na(minRobj$WeightLength$DataMatrix$partcount)))
+
 
 context("test prepRECA: missing column random effect")
 expect_error(prepRECA(fishdata, landings, NULL, c("gear"), NULL, month=landings$Month))
