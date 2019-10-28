@@ -160,7 +160,6 @@ checkAgeLength<-function(agelength, num_tolerance = 1e-10){
 checkWeightLength<-function(weightlength, landings){
   check_columns_present(weightlength$DataMatrix, c("weightKG", "lengthCM", "samplingID", "partnumber", "partcount"))
   check_none_missing(weightlength$DataMatrix, c("lengthCM", "samplingID", "partnumber", "weightKG"))
-  warning("Skipping partcount check")
   #if (any(is.na(weightlength$DataMatrix$partcount))){
   #  stop("Missing values for partcount (derived from lengthsamplecount, lengthsampleweight and catchweight)")
   #}
