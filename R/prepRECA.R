@@ -648,6 +648,7 @@ fixCar <- function(car, careffect){
   return(car)
 }
 
+#' To be called from runRECA, update covariateMap wih an entry for cell in covariateMap$inlandings, before renameRecaOutput is run
 #' @noRd
 addCellCovariateMap <- function(covariateMap, infoMatrix){
   cellMemb <- rownames(infoMatrix[infoMatrix[,"interaction"] == 1,])
