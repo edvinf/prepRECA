@@ -364,6 +364,41 @@ prepData_portsampling_2018 <- function(file){
   return(newPortsampling)
 }
 
+#' Preps cod data
+#' @noRd
+getEcaPrepExample <- function(){
+  # make into proper example before exporting, and adding as run example to runRECA
+  SA <- prepRECA::NORportsampling2018$SA[prepRECA::NORportsampling2018$SA$SAsppCode == "126436",]
+  BV <- prepRECA::NORportsampling2018$BV[prepRECA::NORportsampling2018$BV$SAid %in% SA$SAid,]
+  fishdata <- prepRECA::extractBV(BV, c("Age", "Length", "Weight"), c("integer", "numeric", "numeric"))
+  fishdata <- merge(fishdata, SA, by="SAid")
+  fishdata <- merge(fishdata, prepRECA::NORportsampling2018$SS, by="SSid")
+  fishdata <- merge(fishdata, prepRECA::NORportsampling2018$LE, by="LEid", suffixes = c("", ".LE"))
+  fishdata <- merge(fishdata, prepRECA::NORportsampling2018$VD, by="VDid")
+  fishdata <- merge(fishdata, prepRECA::NORportsampling2018$OS, by="OSid")
+  fishdata <- fishdata[!is.na(fishdata$Age),]
+  fishdata$Weight <- fishdata$Weight/1000
+  fishdata$Length <- fishdata$Length/10
+  fishdata$catchId <- fishdata$LEid
+  fishdata$sampleId <- fishdata$SAid
+  fishdata$Metier5 <- fishdata$LEmetier5
+  fishdata$gear <- fishdata$LEmetier5
+  fishdata$vessel <- fishdata$VDencrCode
+  fishdata$quarter <- fishdata$OSstratum
+  fishdata$date <- fishdata$LEdate
+
+  landings <- prepRECA::CLCodHadNOR
+  landings <- landings[landings$Species == "126436",]
+  landings$Metier5 <- landings$FishingActivityCategoryEuropeanLvl5
+  landings$LiveWeightKG <- landings$OfficialLandingsWeight
+  landings$quarter <- paste("Q", landings$Quarter, sep="")
+
+  RECAobj <- prepRECA::prepRECA(fishdata[1:100,], landings, NULL, c("Metier5", "vessel"), NULL, neighbours = NULL, quarter=landings$Quarter, nFish = NULL)
+
+  return(RECAobj)
+
+}
+
 #
 # Update data
 #
