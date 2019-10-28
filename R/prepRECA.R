@@ -357,8 +357,8 @@ getLandings <- function(landings, covariates, covariateMaps, date=NULL, month=NU
 #' @param neighbours list() specifying the neighbourhood-structure for the carEffect. neighbours[a] should provide a vector of neighbours to a. May be NULL of no carEffect is used.
 #' @param nFish data.table() specifying the number of fish in the part of the catch that each sample was taken from. Not alwaus needed. See details. Columns:
 #' @param ageError matrix() specifying the probability of read age (rows), given true age (columns). Row and column names specify the ages. If NULL, a unit matrix is assumed (No error in age reading).
-#' @param minAge lowest age to include in model. If NULL, minimal age in samples is used.
-#' @param maxAge highest age to include in model. If NULL, maximal age in samples is used.
+#' @param minAge lowest age to include in model. If NULL, minimal age in samples is used. Age range must match any age error matrix provided (ageError)
+#' @param maxAge highest age to include in model. If NULL, maximal age in samples is used. Age range must match any age error matrix provided (ageError)
 #' @param maxLength longest length to include in model.  If NULL, maximal length in samples is used.
 #' @param lengthResolution desired resolution for length groups. If NULL minimal difference in first testMax records are used.
 #' @param testMax The largest number of record to inspect for deriving lengthResolution.
@@ -485,8 +485,14 @@ prepRECA <- function(samples, landings, fixedEffects, randomEffects, carEffect=N
     if (!(all(ageRange %in% rownames(ageError) & ageRange %in% colnames(ageError)))){
       stop("Age error matrix must have entries for the entire age range estimated.")
     }
-    ageError <- ageError[ageRange, ageRange]
+    if (nrow(ageError) != length(ageRange)){
+      stop("age error matrix does not match the provided age range")
+    }
+    if (!all(colSums(ageError) == 1)){
+      stop("Age error columns does not sum to 1.")
+    }
   }
+
 
   # build eca objects
   info <- getInfoMatrix(samples, landings, fixedEffects, randomEffects, carEffect)

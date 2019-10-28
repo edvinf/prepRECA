@@ -115,7 +115,7 @@ neighboursECA <- getNeighbours(neighbours, covMap)
 expect_equal(neighboursECA$numNeighbours, c(2,1,1))
 expect_equal(neighboursECA$idNeighbours, c(2,3,1,1))
 
-context("test prepRECA: CAR effect")
+context("test prepRECA: CAR effect simple run")
 carefftest <- fishdata[1:1000,]
 carefftestland <- landings
 dummycareff <- unique(carefftest[,c("catchId")])
@@ -126,6 +126,18 @@ RECAobj <- prepRECA(carefftest, carefftestland, c("Metier5"), c("vessel"), "dumm
 expect_equal(RECAobj$AgeLength$CARNeighbours$numNeighbours, c(2,1,1))
 expect_equal(RECAobj$AgeLength$CARNeighbours$idNeighbours, c(2,3,1,1))
 expect_true(all(RECAobj$AgeLength$CovariateMatrix$dummyArea %in% c(1,2,3)))
-expect_error(prepRECA(carefftest, landings, c("Metier5"), c("vessel"), "dummyArea", neighbours = neighbours, month=landings$Month)) #CAR not in landings
 
-warning("Add test for Age error")
+context("test prepRECA: CAR effect errors")
+expect_error(prepRECA(carefftest, landings, c("Metier5"), c("vessel"), "dummyArea", neighbours = neighbours, month=landings$Month)) #CAR not in landings
+expect_error(prepRECA(carefftest, landings, c("Metier5"), c("vessel"), NULL, neighbours = neighbours, month=landings$Month)) #neighbours with no CAR
+
+context("test prepRECA: age error simple run")
+ageErr <- matrix(c(.8,.2,.2,.8), nrow=2, dimnames=list(c(1,2), c(1,2)))
+RECAobj <- prepRECA(fishdata[is.na(fishdata$Age) | fishdata$Age %in% c(1,2),], landings, c("Metier5"), c("vessel"), NULL, month=landings$Month, ageError = ageErr, minAge=1, maxAge = 2)
+expect_equal(nrow(RECAobj$AgeLength$AgeErrorMatrix),2)
+
+context("test prepRECA: age error with matrix errors")
+expect_error(prepRECA(fishdata, landings, c("Metier5"), c("vessel"), NULL, month=landings$Month, ageError = ageErr)) #outside age range
+ageErr <- matrix(c(.8,.2,.1,.8), nrow=2, dimnames=list(c(1,2), c(1,2)))
+expect_error( prepRECA(fishdata[is.na(fishdata$Age) | fishdata$Age %in% c(1,2),], landings, c("Metier5"), c("vessel"), NULL, month=landings$Month, ageError = ageErr, minAge=1, maxAge = 2)) # ageError matrix does not sum to 1
+
