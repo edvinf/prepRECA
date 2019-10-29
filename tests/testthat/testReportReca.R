@@ -1,0 +1,36 @@
+context("test makeResultTableRECA: simple run")
+all <- makeResultTableRECA(prepRECA:::testset1$prediction)
+expect_true(all(all$unit == "millions"))
+
+context("test makeResultTableRECA: unit")
+u <- makeResultTableRECA(prepRECA:::testset1$prediction, unit="kT")
+expect_true(all(u$unit == "kT"))
+
+context("test makeResultTableRECA: plusgr")
+plusgr6 <- makeResultTableRECA(prepRECA:::testset1$prediction, plusGroup=6)
+expect_equal(nrow(plusgr6), 6)
+expect_equal(plusgr6[1:5,2], all[1:5,2])
+expect_equal(sum(plusgr6[6,2]), sum(all[6:20,2]))
+expect_equal(sum(plusgr6[,2]), sum(all[,2]))
+
+context("test makeResultTableRECA: unsupported unit")
+expect_error(makeResultTableRECA(prepRECA:::testset1$prediction, plusGroup=6, unit="uns"))
+
+context("test makeAgeTracesRECA: simple run")
+trace <- makeAgeTracesRECA(prepRECA:::testset1$prediction)
+expect_equal(ncol(trace), 20)
+expect_equal(nrow(trace), 100)
+expect_true(all(colMeans(trace) == all$total))
+
+context("test makeAgeTracesRECA: plusgr")
+plusgr6trace <- makeAgeTracesRECA(prepRECA:::testset1$prediction, plusGroup=6)
+expect_equal(ncol(plusgr6trace), 6)
+expect_equal(nrow(plusgr6trace), 100)
+expect_true(all(colMeans(plusgr6trace) == plusgr6$total))
+plusgr7trace <- makeAgeTracesRECA(prepRECA:::testset1$prediction, plusGroup=7)
+expect_equal(ncol(plusgr7trace), 7)
+expect_equal(nrow(plusgr7trace), 100)
+
+context("test makeResultTableRECA: unit")
+u <- makeAgeTracesRECA(prepRECA:::testset1$prediction, unit="number", plusGroup = 6)
+expect_true(all(colMeans(u) == (plusgr6$total*1e6)))
