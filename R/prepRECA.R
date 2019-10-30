@@ -799,28 +799,26 @@ makeResultTableRECA <- function(prediction, unit="millions", plusGroup=NULL, alp
   sortcol <- pl$sortcol
   caa <- pl$caa
 
-  meanList <- list(age = ages, total = rowMeans(caa), unit = rep(unit, length(ages)))
+  meanList <- list(age = as.character(ages), total = rowMeans(caa), unit = rep(unit, length(ages)), sortcol = sortcol)
   means <-
     data.table::as.data.table(meanList)
   cv <-
     data.table::as.data.table(list(
       age = ages,
-      sortcol = sortcol,
       sd = apply(caa, FUN = sd, MARGIN = 1)
     ))
   cv$cv <- cv$sd / means[[names(meanList)[[2]]]]
 
   tab <- merge(means, cv)
 
-  upper <- c()
-  lower <- c()
-  for (i in 1:length(ages)){
-    upper <- c(upper, quantile(caa[i,], 1-(alpha/2.0)))
-    lower <- c(lower, quantile(caa[i,], (alpha/2.0)))
-  }
+  quantiles <-
+    data.table::as.data.table(list(
+      age = ages,
+      upperQuantile = apply(caa, FUN = quantile, MARGIN = 1,  1-(alpha/2.0)),
+      lowerQuantile = apply(caa, FUN = quantile, MARGIN = 1, (alpha/2.0))
+    ))
 
-  tab$lowerQuantile <- lower
-  tab$upperQuantile <- upper
+  tab <- merge(means, quantiles)
   tab$alpha <- alpha
 
 
