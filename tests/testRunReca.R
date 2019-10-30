@@ -35,6 +35,11 @@ landings$gear <- landings$FishingActivityCategoryEuropeanLvl5
 landings$LiveWeightKG <- landings$OfficialLandingsWeight
 landings$quarter <- paste("Q", landings$Quarter, sep="")
 
+# try with nfish
+RECAobj <- prepRECA::prepRECA(fishdata, landings, NULL, c("Metier5", "vessel"), NULL, neighbours = NULL, quarter=landings$Quarter, nFish = NULL)
+prepRECA::runRECA(RECAobj,100,100)
+stop()
+
 #s<-load("~/code/github/Rstox_utils/Work/testfiles/herring_2015_tempfixed_gearrandom_100samples.Rdata")
 # check if partnumber matters
 ageError <- diag(rep(1,20))
@@ -72,6 +77,8 @@ carefftest <- merge(carefftest, dummycareff, by="catchId")
 carefftestland$dummyArea <- c(rep(c("a", "b", "c"), nrow(carefftestland)/3), "a")
 RECAobj <- prepRECA::prepRECA(carefftest, carefftestland, NULL, c("Metier5"), "dummyArea", neighbours = neighbours, quarter=landings$Quarter)
 prepRECA::runRECA(RECAobj,100,100)
+
+
 
 warning("Put in proper partcount check")
 warning("Check temporal resolution more carefully")

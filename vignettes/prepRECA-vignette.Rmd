@@ -58,8 +58,15 @@ table(SA$SApres)
 
 Has heterogenoeus presentation of fish. Weight is an auxiliary variable, that Reca does not necesarily require complete observations of, so I'll try removing weights of gutted fish for the sake of this example:
 ```{r}
-samples[samples$SApres == "Gutted", "Weight "] <- NA
+samples[samples$SApres == "Gutted", "Weight"] <- NA
 ```
+
+We note that weights and lengths are given in grams and mm. Reca expects kg and cm.
+```{r}
+samples$Weight <- samples$Weight / 1000
+samples$Length <- samples$Length / 10
+```
+
 
 
 Then we merge in information from the rest of the hiearchy:
@@ -149,7 +156,7 @@ We are then ready to inspect the data with respect to model configuration:
 prepRECA::rEcaDataReport(samples, landings, c("area", "quarter", "metier5"))
 ```
 
-First we note that we have a sample that does not exist in landings. One single trawl-sample, that we have defined out of the population to estimate. We will remove this:
+First we note that we have a sample that does not exist in landings (notice warning). One single trawl-sample, that we have defined out of the population to estimate. We will remove this:
 
 ```{r}
  samples <- samples[samples$metier5 != "OTB_DEF",]
@@ -191,7 +198,7 @@ recaObj <- prepRECA::prepRECA(samples, landings, fixedEffects = c("area", "metie
 ```{r}
 meanWeights <- aggregate(list(meanweight=samples$Weight), by=list(sampleId=samples$sampleId), FUN=mean, na.rm=T)
 nFish <- merge(unique(samples[,c("sampleId", "SAtotalWtLive")]), meanWeights)
-nFish$count <- nFish$SAtotalWtLive / samples$meanweight
+nFish$count <- nFish$SAtotalWtLive / nFish$meanweight
 nFish$SAtotalWtLive <- NULL
 nFish$meanweight <- NULL
 ```
@@ -205,8 +212,24 @@ recaObj <- prepRECA::prepRECA(samples, landings, fixedEffects = c("area", "metie
 ...
 
 
-```{r}
+```{r, warning=T}
 recaResult <- runRECA(recaObj, nSamples=500, burnin = 500)
 ```
 
+...
+```{r}
+makeResultTableRECA(recaResult$prediction)
+```
+
+...
+
+```{r}
+makeResultTableRECA(recaResult$prediction, plusGroup = 12)
+```
+
+...
+
+```{r}
+plotCatchAtAge(recaResult$prediction, plusGroup = 12, title="Catch At Age, Haddock example, 95% CI")
+```
 

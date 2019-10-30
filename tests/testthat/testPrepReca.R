@@ -163,6 +163,8 @@ expect_error(prepRECA(fishdata, landings, c("Metier5"), c("vessel"), NULL, month
 ageErr <- matrix(c(.8,.2,.1,.8), nrow=2, dimnames=list(c(1,2), c(1,2)))
 expect_error( prepRECA(fishdata[is.na(fishdata$Age) | fishdata$Age %in% c(1,2),], landings, c("Metier5"), c("vessel"), NULL, month=landings$Month, ageError = ageErr, minAge=1, maxAge = 2)) # ageError matrix does not sum to 1
 
+stop("Test for NA in nFish")
+
 warning("Test for constant in landings and samples")
 
 warning("Test nlev for fixed effect")
