@@ -35,10 +35,17 @@ landings$quarter <- paste("Q", landings$Quarter, sep="")
 context("test prepRECA: minimal run")
 
 minRobj <- prepRECA(fishdata[1:1000], landings, NULL, NULL, NULL, month=landings$Month)
+expect_true("constant" %in% names(minRobj$AgeLength$CovariateMatrix))
+expect_true("constant" %in% names(minRobj$Landings$AgeLengthCov))
+expect_true("constant" %in% names(minRobj$WeightLength$CovariateMatrix))
+expect_true("constant" %in% names(minRobj$Landings$WeightLengthCov))
 expect_equal(max(minRobj$AgeLength$DataMatrix$samplingID), nrow(minRobj$AgeLength$CovariateMatrix))
 expect_equal(max(minRobj$WeightLength$DataMatrix$samplingID), nrow(minRobj$WeightLength$CovariateMatrix))
 expect_error(prepRECA(fishdata[1:1000], landings, c("Metier5"), c("vessel"), NULL, month=landings$Month)) #fixed effect issue
-prepRECA(fishdata[1:1000], landings[landings$Quarter < 3,], c("quarter"), c("vessel"), NULL, month=landings[landings$Quarter < 3,][["Month"]])
+
+#check with sampled cells not in landings
+stopifnot("Q4" %in% fishdata$quarter)
+expect_error(prepRECA(fishdata[1:1000, fishdata], landings[landings$Quarter < 3,], c("quarter"), c("vessel"), NULL, month=landings[landings$Quarter < 3,][["Month"]]))
 
 minRobj <- prepRECA(fishdata, landings, NULL, NULL, NULL, month=landings$Month, nFish = nFishAll)
 expect_equal(max(minRobj$AgeLength$DataMatrix$samplingID), nrow(minRobj$AgeLength$CovariateMatrix))
@@ -85,6 +92,12 @@ expect_equal(max(dmAgeLength$DataMatrix$samplingID), length(unique(fishdata[1:10
 
 context("tets getDataMatrixAgeLength: nFish error")
 expect_error(getDataMatrixAgeLength(fishdata, NULL)) #delprøve on some sample
+nfe <- nFishAll
+nfe[1,"count"] <- NA
+expect_error(prepRECA(fishdata[1:1000], landings, NULL, NULL, NULL, month=landings$Month, nFish=nfe))
+nfe <- nFishAll
+names(nfe)[2] <- "counts"
+expect_error(prepRECA(fishdata[1:1000], landings, NULL, NULL, NULL, month=landings$Month, nFish=nfe))
 
 context("tets getDataMatrixWeightLength: simple run")
 dmWeightLength <- getDataMatrixWeightLength(fishdata[1:10,], NULL)
@@ -162,17 +175,3 @@ context("test prepRECA: age error with matrix errors")
 expect_error(prepRECA(fishdata, landings, c("Metier5"), c("vessel"), NULL, month=landings$Month, ageError = ageErr)) #outside age range
 ageErr <- matrix(c(.8,.2,.1,.8), nrow=2, dimnames=list(c(1,2), c(1,2)))
 expect_error( prepRECA(fishdata[is.na(fishdata$Age) | fishdata$Age %in% c(1,2),], landings, c("Metier5"), c("vessel"), NULL, month=landings$Month, ageError = ageErr, minAge=1, maxAge = 2)) # ageError matrix does not sum to 1
-
-stop("Test for NA in nFish")
-
-warning("Test for constant in landings and samples")
-
-warning("Test nlev for fixed effect")
-
-warning("Test nFish for error with all data. (Some slipped passed weight)")
-
-warning("Test for sampled cells not in landings in prepRECA.")
-
-warning("Add test for plsugr with different index in appr. file")
-
-warning("Add test for cov ordering")

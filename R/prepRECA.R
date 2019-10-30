@@ -23,6 +23,28 @@ checkAllSampled <- function(landings, samples, fixedEffects){
   return(all(landingsfixed %in% samplesfixed))
 }
 
+#' @noRd
+checkSamplesInFrame <- function(samples, landings, covariates){
+
+  inlandings <- covariates[covariates %in% names(landings)]
+
+  if (length(inlandings) == 0){
+    return(T)
+  }
+
+  landingscells <- landings[[inlandings[1]]]
+  samplescells <- samples[[inlandings[1]]]
+
+  if (length(inlandings) > 1){
+    for (f in inlandings[2:length(inlandings)]){
+      landingscells <- paste(landingscells, landings[[f]], sep="/")
+      samplescells <- paste(samplescells, samples[[f]], sep="/")
+    }
+  }
+
+  return(all(samplescells %in% landingscells))
+}
+
 #' Check that all fixed effects are sampled in combination with carEffect or neighbout
 #' @noRd
 checkAllSampledCar <- function(landings, samples, fixedEffects, carEffect, neighbours){
@@ -512,6 +534,19 @@ prepRECA <- function(samples, landings, fixedEffects, randomEffects, carEffect=N
     if (!all(randomEffects %in% names(samples))){
       stop(paste("Data missing for random effects (samples):", paste(randomEffects[!(randomEffects %in% names(samples))], collapse=",")))
     }
+  }
+
+  if (!is.null(nFish)){
+    if (!(all(c("sampleId", "count") %in% names(nFish)))){
+      stop("Columns 'sampleId' and 'count' are mandatory for parameter nFish.")
+    }
+    if (any(is.na(nFish))){
+      stop("nFish contains NAs.") #Note that nFish need only be provided for samples (sampleId) where there is more than one sample for a catch (catchId)
+    }
+  }
+
+  if (!checkSamplesInFrame(samples, landings, c(fixedEffects, randomEffects, carEffect))){
+    stop("Some samples are taken from cells not in landings.")
   }
 
   covariateMaps <- list()

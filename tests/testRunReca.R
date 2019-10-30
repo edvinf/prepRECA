@@ -77,8 +77,3 @@ carefftest <- merge(carefftest, dummycareff, by="catchId")
 carefftestland$dummyArea <- c(rep(c("a", "b", "c"), nrow(carefftestland)/3), "a")
 RECAobj <- prepRECA::prepRECA(carefftest, carefftestland, NULL, c("Metier5"), "dummyArea", neighbours = neighbours, quarter=landings$Quarter)
 prepRECA::runRECA(RECAobj,100,100)
-
-
-
-warning("Put in proper partcount check")
-warning("Check temporal resolution more carefully")
