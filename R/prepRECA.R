@@ -77,6 +77,7 @@ getCovariateMap <- function(covariate, samples, landings){
   return(map)
 }
 
+#' order columns by constant, inlandings, notinlandings (inlandings and notinalndings sorted alphabetically)
 #' @noRd
 getInfoMatrix <- function(samples, landings, fixedEffects, randomEffects, carEffect){
   info <- matrix(ncol=7, nrow=length(c(fixedEffects, randomEffects, carEffect))+1)
@@ -116,6 +117,14 @@ getInfoMatrix <- function(samples, landings, fixedEffects, randomEffects, carEff
     info[i,] <- c(1,1,0,inl,length(unique(c(samples[[carEffect]], landings[[carEffect]]))), inl, 0)
     i <- i+1
   }
+
+  #order columns by constant, inlandings, notinlandings (inlandings and notinalndings sorted alphabetically)
+  inlandings <- rownames(info)[info[,"in.landings"] == 1]
+  inlandings <- sort(inlandings[inlandings != "constant"])
+  notinlandings <- sort(rownames(info)[info[,"in.landings"] == 0])
+
+  ord <- c("constant", inlandings, notinlandings)
+  info <- info[match(ord, rownames(info)),]
   return(info)
 }
 
@@ -220,6 +229,7 @@ getDataMatrixWeightLength <- function(samples, nFish=NULL){
 }
 
 #' Order by catchId before removing column
+#' order columns by constant, inlandings, notinlandings (inlandings and notinalndings sorted alphabetically)
 #' @noRd
 getCovariateMatrix <- function(samples, covariates, covariatesMapInLandings, covariatesMapRandom){
 
@@ -241,7 +251,21 @@ getCovariateMatrix <- function(samples, covariates, covariatesMapInLandings, cov
   }
   samples <- samples[order(samples$catchId),]
   samples$catchId <- NULL
-  return(samples)
+
+  inlandings <- c()
+  if (!is.null(covariatesMapInLandings)){
+    inlandings <- covariates[covariates %in% names(covariatesMapInLandings)]
+    inlandings <- sort(inlandings)
+  }
+
+  notinlandings <- c()
+  if (!is.null(covariatesMapRandom)){
+    notinlandings <- covariates[covariates %in% names(covariatesMapRandom)]
+    notinlandings <- sort(notinlandings)
+  }
+
+  cols <- c("constant", inlandings, notinlandings)
+  return(samples[,..cols])
 }
 
 #' @param neighbours list mapping values of covariate with CAR effect to list of neighbours (symmetric)
@@ -296,6 +320,8 @@ getNeighbours <- function(neighbours, covariateMap){
 #' @export
 getLandings <- function(landings, covariates, covariateMaps, date=NULL, month=NULL, quarter=NULL){
 
+  #consider redesigning, using info matrix for ordering
+
   if (is.null(date) & is.null(month) & is.null(quarter)){
     stop("date, month, and quarter can not all be NULL")
   }
@@ -304,6 +330,7 @@ getLandings <- function(landings, covariates, covariateMaps, date=NULL, month=NU
   }
 
   inlandings <- names(landings)[names(landings) %in% covariates]
+  inlandings <- sort(inlandings)
 
   aggList <- list()
   for (cov in inlandings){
@@ -486,7 +513,7 @@ prepRECA <- function(samples, landings, fixedEffects, randomEffects, carEffect=N
       stop(paste("Data missing for random effects (samples):", paste(randomEffects[!(randomEffects %in% names(samples))], collapse=",")))
     }
   }
-  stop("order columns in landings and in samples")
+
   covariateMaps <- list()
 
   #covariateMaps common between models (effects in landings)
@@ -610,7 +637,7 @@ checkEcaObj <- function(RECAobj){
 
   checkGlobalParameters(obj$GlobalParameters, obj$AgeLength, obj$WeightLength)
 
-  return(obj)
+  return(RECAobj)
 }
 
 #' @noRd

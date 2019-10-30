@@ -100,14 +100,14 @@ expect_gt(sum(!is.na(dm$DataMatrix$partcount)), 0)
 expect_gt(sum(is.na(dm$DataMatrix$partcount)), 0)
 
 context("tets CovariateMatrix: simple run")
-cv <- getCovariateMatrix(fishdata, c(), NULL)
+cv <- getCovariateMatrix(fishdata, c(), NULL, NULL)
 expect_equal(nrow(cv), length(unique(fishdata$catchId)))
 expect_equal(ncol(cv),1)
 
 context("tets getCovariateMatrix: one covariate")
 covariateMaps <- list()
 covariateMaps[["vessel"]] <- getCovariateMap("vessel", fishdata, landings)
-cv <- getCovariateMatrix(fishdata, c("vessel"), covariateMaps)
+cv <- getCovariateMatrix(fishdata, c("vessel"), NULL, covariateMaps)
 expect_equal(nrow(cv), length(unique(fishdata$catchId)))
 expect_equal(ncol(cv),2)
 expect_true(all(c("vessel", "constant") %in% names(cv)))
@@ -172,3 +172,5 @@ warning("Test nFish for error with all data. (Some slipped passed weight)")
 warning("Test for sampled cells not in landings in prepRECA.")
 
 warning("Add test for plsugr with different index in appr. file")
+
+warning("Add test for cov ordering")
