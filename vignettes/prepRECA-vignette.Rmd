@@ -10,7 +10,8 @@ vignette: >
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
-  comment = "#>"
+  comment = "#>",
+  fig.width=8, fig.height=8
 )
 ```
 
@@ -213,15 +214,22 @@ recaObj <- prepRECA::prepRECA(samples, landings, fixedEffects = c("area", "metie
 
 
 ```{r, warning=T}
-recaResult <- runRECA(recaObj, nSamples=500, burnin = 500)
+recaResult <- runRECA(recaObj, nSamples=1000, burnin = 5000)
 ```
 
 ...
+
 ```{r}
 makeResultTableRECA(recaResult$prediction)
 ```
 
 ...
+
+```{r}
+plotAgeTraces(recaResult$prediction, plusGroup = 12)
+```
+
+Beware of plots showing spikes or autocorrelations. Those are signs of non-converged parameterization. In those cases consider re-running with higher value for the parameter 'burnin'. Low-abundance groups, typically take longer to converge, as evident from age 1, in the plot above. Non-convergence of these estimates are also of less concern, as long as one can justify from other sources that they really are of low abundance. For age-group 1, low abundance in catches is expected from gear selectivity.
 
 ```{r}
 makeResultTableRECA(recaResult$prediction, plusGroup = 12)

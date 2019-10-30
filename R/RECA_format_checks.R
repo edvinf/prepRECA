@@ -137,9 +137,12 @@ checkAgeLength<-function(agelength, num_tolerance = 1e-10){
   check_none_missing(agelength$DataMatrix, c("lengthCM", "samplingID", "partnumber"))
 
   samplesPrCatch <- aggregate(list(partCount=agelength$DataMatrix$partnumber), by=list(samplingID=agelength$DataMatrix$samplingID), FUN=function(x){length(unique(x))})
-  needpartnumber <- agelength$DataMatrix[agelength$DataMatrix$samplingID %in% samplesPrCatch[samplesPrCatch$partCount > 1, "samplingID"]]
-  if (any(is.na(needpartnumber$partcount))){
-    stop("Missing values for partcount where several samples are taken from a catch")
+  samplesPrCatchLT1 <- samplesPrCatch[samplesPrCatch$partCount > 1,]
+  if (nrow(samplesPrCatchLT1) > 0){
+    needpartnumber <- agelength$DataMatrix[agelength$DataMatrix$samplingID %in% samplesPrCatchLT1[, "samplingID"],]
+    if (any(is.na(needpartnumber$partcount))){
+      stop("Missing values for partcount where several samples are taken from a catch")
+    }
   }
   check_data_matrix(agelength)
   check_covariates(agelength)
@@ -165,9 +168,12 @@ checkWeightLength<-function(weightlength, landings){
   check_none_missing(weightlength$DataMatrix, c("lengthCM", "samplingID", "partnumber", "weightKG"))
 
   samplesPrCatch <- aggregate(list(partCount=weightlength$DataMatrix$partnumber), by=list(samplingID=weightlength$DataMatrix$samplingID), FUN=function(x){length(unique(x))})
-  needpartnumber <- weightlength$DataMatrix[weightlength$DataMatrix$samplingID %in% samplesPrCatch[samplesPrCatch$partCount > 1, "samplingID"]]
-  if (any(is.na(needpartnumber$partcount))){
-    stop("Missing values for partcount where several samples are taken from a catch")
+  samplesPrCatchLT1 <- samplesPrCatch[samplesPrCatch$partCount > 1,]
+  if (nrow(samplesPrCatchLT1) > 0){
+    needpartnumber <- weightlength$DataMatrix[weightlength$DataMatrix$samplingID %in% samplesPrCatchLT1["samplingID"],]
+    if (any(is.na(needpartnumber$partcount))){
+      stop("Missing values for partcount where several samples are taken from a catch")
+    }
   }
 
   check_data_matrix(weightlength)
@@ -201,10 +207,10 @@ checkCovariateConsistency <- function(modelobj, landingscov){
   #  stop(paste("Not all values present for fixed covariate", co, "(samples)"))
   #}
   for (co in nonconfixedeffects){
-      num_unique <- length(unique(landingscov[,co]))
-      if (num_unique!=modelobj$info[co,"nlev"]){
-        stop(paste("Fixed effect", co, "does not have values for all corresponding landings"))
-      }
+    num_unique <- length(unique(landingscov[,co]))
+    if (num_unique!=modelobj$info[co,"nlev"]){
+      stop(paste("Fixed effect", co, "does not have values for all corresponding landings"))
+    }
   }
 
   #check that the number of combinations of fixed effects in samples equal those in landing
