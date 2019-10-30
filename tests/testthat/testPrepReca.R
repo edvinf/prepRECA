@@ -168,3 +168,7 @@ warning("Test for constant in landings and samples")
 warning("Test nlev for fixed effect")
 
 warning("Test nFish for error with all data. (Some slipped passed weight)")
+
+warning("Test for sampled cells not in landings in prepRECA.")
+
+warning("Add test for plsugr with different index in appr. file")

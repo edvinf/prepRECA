@@ -1,0 +1,212 @@
+---
+title: "prepRECA-vignette"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{prepRECA-vignette}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(prepRECA)
+```
+
+## Preparing data for Catch At Age estimation
+This packages contains functions for preparing data for Catch At Age estimation, using the package 'Reca'. For common use-cases it takes care of complex data conversion, and facilitates back-conversion when needed.
+
+Reca is provided by the Norwegian Computing Centre, and is available at: https://github.com/NorskRegnesentral/Reca . It implements a Bayesian model for estimating catch at age, and is designed as a component in StoX, an estimation system used at the Institute of Marine Research (IMR) in Norway. Data checks, and data conversion are handled by other StoX components, and are closely tied to the data models supported by StoX. This package is being developed in order to ease adaptation of other data models to Reca, and provides conversion functions and wrapper functions. For purposes of illustration, example data sets from Norwegian port sampling, and aggregated Norwegian sales-notes data is included. These are formatted according to a development version of the data model for the regional data base and estimation system (RDBES). For details see data set documentation:
+```{r}
+?prepRECA::CLCodHadNOR #sales notes
+?prepRECA::NORportsampling2018 #port sampling
+```
+
+The key functions for getting configuring and running the model are:
+ * rEcaDataReport
+ * prepRECA
+ * runRECA
+And the general workflow is to use 'rEcaDataReport' to inspect what model configurations are reasonable for your samples, then use 'prepRECA' to specify model configuration and to convert data to the data format accepted by Reca, before finally running Reca using 'runReca'. In waht follows,  will present an example of such a workflow for estimation of Haddock catches in Norwegian coastal waters.
+
+### Reca model configuration
+...
+
+### inspecting data
+rEcaDataReport expect samples formatted as a data table (package data.table), with one row for each fish, and landings formated as a data table with the total landings partioned over the rows, with columns identifying meta-information. For both landings and samples, some specific columns are also required (see ?rEcaDataReport). The example sales-notes already conform to this expectation, but the samples are provided in a hiearchical format, with one table for different part of the hiearchical sampling. We need to first convert this to a flat table. For estimation with Reca, zero-samples are not important, so we start by restricting or samples to those with Haddock present (samples are represented by the RDBES SA-table):
+```{r}
+  # select samples of target species, aphia code for haddock is 126437
+  SA <- prepRECA::NORportsampling2018$SA[prepRECA::NORportsampling2018$SA$SAsppCode == "126437",]
+```
+
+Fish measurements are coded in the RDBES BV-table for our samples, so we need to extract those. This package provides a function for that, which is design to deal with the RDBES data model (v 1.17):
+```{r}
+  # extract biological measurements corresponding to the selected samples
+  BV <- prepRECA::NORportsampling2018$BV[prepRECA::NORportsampling2018$BV$SAid %in% SA$SAid,]
+  samples <- extractBV(BV, c("Age", "Length", "Weight"), c("integer", "numeric", "numeric")) # set names as required by rEcaDataReport
+```
+
+'extractBV' does simple extration, and does not check for units etc. Checks on data heterogenity should be performed:
+```{r}
+table(BV$BVunitVal)
+table(SA$SApres)
+```
+
+Has heterogenoeus presentation of fish. Weight is an auxiliary variable, that Reca does not necesarily require complete observations of, so I'll try removing weights of gutted fish for the sake of this example:
+```{r}
+samples[samples$SApres == "Gutted", "Weight "] <- NA
+```
+
+
+Then we merge in information from the rest of the hiearchy:
+```{r}
+  # merge in needed upper levels.
+  # SS, SD and DE is not strictly needed,
+  # but included for checking for stratification and clustering at these levels.
+  samples <- merge(samples, SA, by="SAid")
+  samples <- merge(samples, prepRECA::NORportsampling2018$SS, by="SSid")
+  samples <- merge(samples, prepRECA::NORportsampling2018$LE, by="LEid", suffixes = c("", ".LE"))
+  samples <- merge(samples, prepRECA::NORportsampling2018$VD, by="VDid")
+  samples <- merge(samples, prepRECA::NORportsampling2018$OS, by="OSid")
+  samples <- merge(samples, prepRECA::NORportsampling2018$SD, by="SDid")
+  samples <- data.table::as.data.table(merge(samples, prepRECA::NORportsampling2018$DE, by="DEid"))
+```
+
+I will let each landing represent a catch, and set 'catchId' and 'sampledId' (as required by 'rEcaDataReport') accordingly:
+```{r}
+  samples$catchId <- samples$LEid
+  samples$sampleId <- samples$SAid
+```
+
+This sampling program covers almost exclusively day-catches, so sampling date is a good proxy for the date of catch (required by 'rEcaDataReport'):
+```{r}
+ samples$date <- samples$OSsamDate
+```
+
+
+The data table 'samples' now represent our samples of Haddock from the portsampling program in 2018, in a format that conforms to 'rEcaDataReport'. For the landings (sales-notes), we only have to filter by species, and for the population of catches we want to estimate for (which will be Gillnet, Longline and Demershal Seining) in area 27.2.a and 27.1.b. This is a coarse approximation to the sampling frame for this program:
+```{r}
+ landings <- prepRECA::CLCodHadNOR
+ landings <- landings[landings$Species == "126437",]
+ landings <- landings[landings$FishingActivityCategoryEuropeanLvl5 %in% c("GNS_DEF", "LLS_DEF", "LX_DEF", "SSC_DEF"),]
+ landings <- landings[landings$Area %in% c("27.2.a.2", "27.1.b"),]
+```
+
+'rEcaDataReport' expects total weights to be identified by the column 'LiveWeightKG':
+```{r}
+ landings$LiveWeightKG <- landings$OfficialLandingsWeight
+```
+
+The data table 'landings' now represent the total landings of Haddock from Norwegian vessels in 2018, in a format that conforms to 'rEcaDataReport'. Now, we want to run 'rEcaDataReport' to see which columns in landings can represent Reca-cells, which should be modelled as random effects, and which should be fixed effects, and which columns in 'samples' may serve as additional covariates. 'rEcaDataReport' does however also expect that columns that represent the same in samples and landings are named and formatted equally. So we have to inspect how information is coded for columns we are interested in, and see if such correspondances exists, and if any can be made. First we check that no columns match without actually representing the same:
+```{r}
+any(names(samples) %in% names(landings))
+```
+
+Then we will consider the covariates commonly used in Reca estimation: season, area and gear. For season I will use quarter, which occur in landings as a column 'Quarter' and in samples as a stratification variable 'OSstratum'. Both registrations are complete. They are however formatted differently:
+```{r}
+#registrations complete ?
+all(!is.na(landings$Quarter))
+all(!is.na((samples$OSstratum)))
+
+#format of column
+table(landings$Quarter)
+table(samples$OSstratum)
+```
+
+I will rename and reformat so they are in correspondance:
+```{r}
+landings$quarter <- paste("Q", landings$Quarter, sep="")
+samples$quarter <- samples$OSstratum
+```
+
+For area, both formats provide ICES area, in columns LEarea and Area, respectively. I will rename:
+```{r}
+ samples$area <- samples$LEarea
+ landings$area <- landings$Area
+ 
+ #check complete
+ all(!is.na(landings$area))
+ all(!is.na((samples$area)))
+```
+
+For gear, we can use the Level 5 metier, after renaming:
+```{r}
+ samples$metier5 <- samples$LEmetier5
+ landings$metier5 <- landings$FishingActivityCategoryEuropeanLvl5
+
+ #check complete
+ all(!is.na(landings$metier5))
+ all(!is.na((samples$metier5)))
+ 
+```
+
+We are then ready to inspect the data with respect to model configuration:
+```{r, warning=T}
+prepRECA::rEcaDataReport(samples, landings, c("area", "quarter", "metier5"))
+```
+
+First we note that we have a sample that does not exist in landings. One single trawl-sample, that we have defined out of the population to estimate. We will remove this:
+
+```{r}
+ samples <- samples[samples$metier5 != "OTB_DEF",]
+```
+
+
+We see that not all cells are sampled, so these can not all be configureed as fixed effects. We also find that some cells with considerable amount of landings are not sampled, so simply setting to random is a bit risky. We might also consider some of these gears to be quite similar and group them. For instance, one might assume from familiarity with these fisheries, and from the conversion scheme used, that the large volume of landings in "LX_DEF" indicate that many set lines are coded as "LX". grouping these with "LLS" would solve the first and second cell with zero samples:
+```{r}
+landings[landings$metier5 == "LX_DEF", "metier5"] <- "LSS_LX_DEF"
+landings[landings$metier5 == "LLS_DEF", "metier5"] <- "LSS_LX_DEF"
+samples[samples$metier5 == "LX_DEF", "metier5"] <- "LSS_LX_DEF"
+samples[samples$metier5 == "LLS_DEF", "metier5"] <- "LSS_LX_DEF"
+
+prepRECA::rEcaDataReport(samples, landings, c("area", "quarter", "metier5"))
+```
+
+Remaining issues are mostly related to Q3 and SSC (for which we have samples in Q3). Will group Q3 and Q2
+```{r}
+landings[landings$quarter == "Q2", "quarter"] <- "Q2-Q3"
+landings[landings$quarter == "Q3", "quarter"] <- "Q2-Q3"
+samples[samples$quarter == "Q2", "quarter"] <- "Q2-Q3"
+samples[samples$quarter == "Q3", "quarter"] <- "Q2-Q3"
+
+prepRECA::rEcaDataReport(samples, landings, c("area", "quarter", "metier5"))
+```
+
+Remaining issues are now in cells with low volume of landings. I will deal with these by configuring quarter as a random effect.
+We can then proceed to preparing the data for Reca:
+
+### checking and converting data
+
+...
+```{r, error=T}
+recaObj <- prepRECA::prepRECA(samples, landings, fixedEffects = c("area", "metier5"), randomEffects = c("quarter"), NULL, minAge = 1, maxAge = 20, lengthResolution = 1, quarter = landings$Quarter)
+```
+
+...
+
+```{r}
+meanWeights <- aggregate(list(meanweight=samples$Weight), by=list(sampleId=samples$sampleId), FUN=mean, na.rm=T)
+nFish <- merge(unique(samples[,c("sampleId", "SAtotalWtLive")]), meanWeights)
+nFish$count <- nFish$SAtotalWtLive / samples$meanweight
+nFish$SAtotalWtLive <- NULL
+nFish$meanweight <- NULL
+```
+
+...
+
+```{r}
+recaObj <- prepRECA::prepRECA(samples, landings, fixedEffects = c("area", "metier5"), randomEffects = c("quarter"), NULL, minAge = 1, maxAge = 20, lengthResolution = 1, quarter = landings$Quarter, nFish = nFish)
+```
+
+...
+
+
+```{r}
+recaResult <- runRECA(recaObj, nSamples=500, burnin = 500)
+```
+
+

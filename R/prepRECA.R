@@ -133,7 +133,7 @@ addPartCount <- function(DataMatrix, nFish){
   }
   else if (nrow(partsamples) > 0){
     if (is.null(nFish) & !all(partsamples$nSampleId == 1)){
-      stop(paste("Some cacthes are sampled several times, but argument 'nFish' not given."))
+      stop(paste("Some catches are sampled several times, but argument 'nFish' not given."))
     }
     else if (is.null(nFish) & all(partsamples$nSampleId == 1)){
       DataMatrix$partcount <- NA
@@ -486,7 +486,7 @@ prepRECA <- function(samples, landings, fixedEffects, randomEffects, carEffect=N
       stop(paste("Data missing for random effects (samples):", paste(randomEffects[!(randomEffects %in% names(samples))], collapse=",")))
     }
   }
-
+  stop("order columns in landings and in samples")
   covariateMaps <- list()
 
   #covariateMaps common between models (effects in landings)
@@ -602,8 +602,8 @@ checkEcaObj <- function(RECAobj){
   obj$Landings$AgeLengthCov <- as.data.frame(obj$Landings$AgeLengthCov)
   obj$Landings$WeightLengthCov <- as.data.frame(obj$Landings$WeightLengthCov)
 
-  checkAgeLength(obj$AgeLength)
   checkWeightLength(obj$WeightLength)
+  checkAgeLength(obj$AgeLength)
   checkCovariateConsistency(obj$AgeLength, obj$Landings$AgeLengthCov)
   checkCovariateConsistency(obj$WeightLength, obj$Landings$WeightLengthCov)
   checkLandings(obj$Landings)
@@ -937,8 +937,7 @@ runRECA <- function(RecaObj, nSamples, burnin, lgamodel="log-linear", fitfile="f
       out$fit <- fit
       out$prediction <- pred
       out$covariateMaps <- RecaObj$CovariateMaps
-    }
-    ,
+    },
     finally={
       if (is.null(resultdir)){
         unlink(Recadir, recursive = T)
@@ -1015,7 +1014,7 @@ rEcaDataReport <- function(samples, landings, covariates){
     stop("Column LiveWeightKG is mandatory in landings")
   }
   if (!(all(c("catchId", "sampleId", "date", "Age", "Length", "Weight") %in% names(samples)))){
-    stop(paste("Columns, catchId, sampleId, date, Age, Length, and Weight are mandatory in samples. Missing:", paste(c("catchId", "sampleId", "date", "Age", "Length", "Weight")[(!c("catchId", "sampleId", "Age", "Length", "Weight") %in% names(samples))], collapse=",")))
+    stop(paste("Columns, catchId, sampleId, date, Age, Length, and Weight are mandatory in samples. Missing:", paste(c("catchId", "sampleId", "date", "Age", "Length", "Weight")[(!c("catchId", "sampleId", "date", "Age", "Length", "Weight") %in% names(samples))], collapse=",")))
   }
 
   if (length(unique(samples$sampleId)) != nrow(unique(samples[, c("catchId", "sampleId")]))){
@@ -1068,18 +1067,20 @@ rEcaDataReport <- function(samples, landings, covariates){
     l <- list(t=samples[[s]])
     names(l) <- paste("N",s, sep="")
     agg <- aggregate(l, agglist, FUN=function(x){length(unique(x))})
-    out <- merge(out, agg, all.x=T)
+    out <- merge(out, agg, all=T)
   }
 
-  out <- merge(out, nDs, all.x=T)
-  out <- merge(out, nCs, all.x=T)
-  out <- merge(out, nSs, all.x=T)
+  out <- merge(out, nDs, all=T)
+  out <- merge(out, nCs, all=T)
+  out <- merge(out, nSs, all=T)
 
-  out <- merge(out, nAges, all.x=T)
-  out <- merge(out, nWeight, all.x=T)
-  out <- merge(out, nLength, all.x=T)
+  out <- merge(out, nAges, all=T)
+  out <- merge(out, nWeight, all=T)
+  out <- merge(out, nLength, all=T)
 
-  stopifnot(all(!is.na(out$LiveWeightKG)))
+  if (any(is.na(out$LiveWeightKG))){
+    warning("Some cells are sampled, but does not occur in landings.")
+  }
 
   # NAs come from cells not present in samples
   out[is.na(out)]<-0
