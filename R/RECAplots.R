@@ -92,6 +92,8 @@ getPlusGr <- function(prediction, unit, plusGroup){
 #'  \item{UpperQuantile}{Upper quantile: (100*(1-alpha/2) percentile) for estimated total}
 #'  \item{alpha}{alpha for quantiles.}
 #' }
+#' @examples
+#'  makeResultTableRECA(prepRECA::recaRunExample$prediction)
 #' @export
 makeResultTableRECA <- function(prediction, unit="millions", plusGroup=NULL, alpha=.05){
 
@@ -153,6 +155,8 @@ makeResultTableRECA <- function(prediction, unit="millions", plusGroup=NULL, alp
 #' @param unit unit of traced estimates. See details.
 #' @param plusGroup Fish this age or older will be grouped in one trace.
 #' @return data.table() with one column for each age (or plus group), and one row for each iteration of \code{\link[Reca]{eca.predict}}.
+#' @examples
+#'  makeAgeTracesRECA(prepRECA::recaRunExample$prediction)
 #' @export
 makeAgeTracesRECA <- function(prediction, unit="millions", plusGroup=NULL){
   pl <- getPlusGr(prediction, unit, plusGroup)
@@ -184,6 +188,8 @@ makeAgeTracesRECA <- function(prediction, unit="millions", plusGroup=NULL){
 #' @param plusGroup Fish this age or older will be grouped in plot
 #' @param credibility The desired credibility for credibility intervals.
 #' @param title Title for plot
+#' @examples
+#' plotCatchAtAge(prepRECA::recaRunExample$prediction)
 #' @export
 plotCatchAtAge <- function(prediction, unit="millions", plusGroup=NULL, credibility=.95, title=NULL){
 
@@ -234,6 +240,8 @@ plotCatchAtAge <- function(prediction, unit="millions", plusGroup=NULL, credibil
 #' @param upperquant upper quantile in each age group to plot as points
 #' @param catlimit the upper limit for number of ages in a plot using categorical coloring. Plots with more than this number of ages will use a gradient coloring scheme
 #' @param title main title for plot
+#' @examples
+#'  plotAgeTraces(prepRECA::recaRunExample$prediction)
 #' @export
 plotAgeTraces <- function(prediction, unit="millions", plusGroup=NULL, nclust=4, iter.max=20, nstart=10, agecolors=NULL, lowerquant=.05, upperquant=.95, catlimit=8, title=""){
 

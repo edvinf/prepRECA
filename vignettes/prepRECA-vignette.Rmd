@@ -10,6 +10,7 @@ vignette: >
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
+  error = TRUE,
   comment = "#>",
   fig.width=8, fig.height=8
 )
@@ -209,7 +210,7 @@ We can then proceed to preparing the data for Reca:
 ### converting data and running Reca
 
 In order to prepare data for Reca, we run the function 'prepRECA'. In addition to converting data, it provides some data checks, and will give an error on our first attempt:
-```{r error=T}
+```{r }
 recaObj <- prepRECA::prepRECA(samples, landings, fixedEffects = c("area", "metier5"), randomEffects = c("quarter"), NULL, minAge = 1, maxAge = 20, lengthResolution = 1, quarter = landings$Quarter)
 ```
 
