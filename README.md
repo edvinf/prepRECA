@@ -4,8 +4,9 @@ Contains code for adapting common formats used in European fisheries science to 
 
 R-ECA is available at: https://github.com/NorskRegnesentral/Reca
 
-Generated files are not tracked in git repository. To build and install:
-1. devtools::document()
-2. devtools::build()
-3. devtools::install()
-4. devtools::test(), requires testthat and may be skipped.
+
+install Reca using:
+devtools::install_github("https://github.com/NorskRegnesentral/Reca"")
+
+install prepRECA using:
+devtools::install_github("https://github.com/edvinf/prepRECA")
