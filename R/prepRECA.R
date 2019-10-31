@@ -480,20 +480,6 @@ getLandings <- function(landings, covariates, covariateMaps, date=NULL, month=NU
 #'  \item{GlobalParameters}{input needed for \code{\link[Reca]{eca.estimate}} and \code{\link[Reca]{eca.predict}}. see details}
 #'  \item{CovariateMaps}{Mapping of values for each covariate in landings and samples (including catchId) to integer value used in R-ECA.}
 #' }
-#' @examples
-#'  samples <- extractBV(prepRECA::NORportsampling2018$BV, c("Age", "Length", "Weight"), c("integer", "numeric", "numeric"))
-#'  samples <- merge(samples, prepRECA::NORportsampling2018$SA, by="SAid")
-#'  samples <- merge(samples, prepRECA::NORportsampling2018$SS, by="SSid")
-#'  samples <- merge(samples, prepRECA::NORportsampling2018$LE, by="LEid", suffixes = c("", ".LE"))
-#'  samples <- merge(samples, prepRECA::NORportsampling2018$VD, by="VDid")
-#'  samples$catchId <- samples$LEid
-#'  samples$sampleId <- samples$SAid
-#'  samples$date <- samples$LEdate
-#'  samples$Metier5 <- samples$LEmetier5
-#'  landings <- prepRECA::CLCodHadNOR
-#'  landings$LiveWeightKG <- landings$OfficialLandingsWeight
-#'  landings$Metier5 <- landings$FishingActivityCategoryEuropeanLvl5
-#'  prepRECA(samples, landings, NULL, c("Metier5", "VDencrCode"))
 #' @export
 prepRECA <- function(samples, landings, fixedEffects, randomEffects, carEffect=NULL, neighbours=NULL, nFish=NULL, ageError=NULL, minAge=NULL, maxAge=NULL, maxLength=NULL, lengthResolution=NULL, testMax=1000, date=NULL, month=NULL, quarter=NULL){
   hatchDay=1
