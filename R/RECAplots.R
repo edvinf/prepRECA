@@ -1,5 +1,6 @@
 #' @noRd
 getPlusGr <- function(prediction, unit, plusGroup){
+
   TotalCount <- prediction$TotalCount
   MeanWeight <- prediction$MeanWeight
   ages <- as.character(prediction$AgeCategories)
@@ -7,6 +8,14 @@ getPlusGr <- function(prediction, unit, plusGroup){
 
   #aggregate on plusgroup
   if (!is.null(plusGroup)){
+
+    if (plusGroup >= max(prediction$AgeCategories)){
+      stop("plusGroup can not be larger than or equal to highest age in prediction.")
+    }
+    if (plusGroup <= min(prediction$AgeCategories)){
+      stop("plusGroup can not be smaller than or equal to lowest age in prediction.")
+    }
+
     plusGroupIndex <- match(plusGroup, prediction$AgeCategories)
 
     # weighted means for mean individual weight

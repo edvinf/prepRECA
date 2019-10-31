@@ -17,6 +17,10 @@ expect_equal(plusgr6[1:5,2], all[1:5,2])
 expect_equal(sum(plusgr6[6,2]), sum(all[6:20,2]))
 expect_equal(sum(plusgr6[,2]), sum(all[,2]))
 
+context("test makeResultTableRECA: plusgr too large")
+expect_error(makeResultTableRECA(prepRECA:::testset1$prediction, plusGroup=20))
+expect_error(makeResultTableRECA(prepRECA:::testset1$prediction, plusGroup=0))
+
 context("test makeResultTableRECA: unsupported unit")
 expect_error(makeResultTableRECA(prepRECA:::testset1$prediction, plusGroup=6, unit="uns"))
 
@@ -40,6 +44,11 @@ expect_true(all(colMeans(plusgr6trace) == plusgr6$total))
 plusgr7trace <- makeAgeTracesRECA(prepRECA:::testset1$prediction, plusGroup=7)
 expect_equal(ncol(plusgr7trace), 7)
 expect_equal(nrow(plusgr7trace), 100)
+
+context("test makeAgeTracesRECA: plusgr too large")
+expect_error(makeAgeTracesRECA(prepRECA:::testset1$prediction, plusGroup=20))
+expect_error(makeAgeTracesRECA(prepRECA:::testset1$prediction, plusGroup=0))
+
 
 context("test makeAgeTracesRECA: unit")
 u <- makeAgeTracesRECA(prepRECA:::testset1$prediction, unit="number", plusGroup = 6)
