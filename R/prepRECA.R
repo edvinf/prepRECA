@@ -201,10 +201,17 @@ formatCatchIdMap <- function(catchidmap){
 
 #' Preps data matix, sorts by catchID
 #' then renames and recodes (preserving order)
+#'
 #' @noRd
-getDataMatrixAgeLength <- function(samples, nFish=NULL){
+getDataMatrixAgeLength <- function(samples, nFish=NULL, hatchday=1){
   DataMatrix <- samples[,c("catchId", "sampleId", "date", "Age", "Length", "Weight")]
-  DataMatrix$date <- (as.numeric(strftime(DataMatrix$date, "%j"))+1)/366
+  DataMatrix$day <- (as.integer(strftime(DataMatrix$date, "%j")) + 2 - hatchday) #srtftime returns 0-based day of the year
+  sel <- DataMatrix$day <= 0
+
+  DataMatrix[sel,"Age"] <- DataMatrix[sel,"Age"] - 1L
+  DataMatrix[sel,"day"] <- 366 + DataMatrix[sel,"day"] #day is negative in this case, hence the + operator
+  DataMatrix$date <- DataMatrix$day / 366
+
   DataMatrix <- DataMatrix[,c("Age", "date", "Length", "catchId", "sampleId")]
   DataMatrix <- addPartCount(DataMatrix, nFish)
   DataMatrix <- DataMatrix[,c("Age", "date", "Length", "catchId", "sampleId", "partcount")]
@@ -217,6 +224,10 @@ getDataMatrixAgeLength <- function(samples, nFish=NULL){
   DataMatrix$otolithtype <- NA
   DataMatrix$otolithtype <- as.integer(DataMatrix$otolithtype)
   DataMatrix <- DataMatrix [,c("age",  "part.year", "lengthCM", "samplingID", "partnumber", "otolithtype", "partcount")]
+
+  if (any(DataMatrix$age) < 0){
+    stop("Negative age for fish. Consider parameter hatchDay.")
+  }
 
   ret <- list()
   ret$DataMatrix <- DataMatrix
@@ -471,6 +482,7 @@ getLandings <- function(landings, covariates, covariateMaps, date=NULL, month=NU
 #' }
 #' @export
 prepRECA <- function(samples, landings, fixedEffects, randomEffects, carEffect=NULL, neighbours=NULL, nFish=NULL, ageError=NULL, minAge=NULL, maxAge=NULL, maxLength=NULL, lengthResolution=NULL, testMax=1000, date=NULL, month=NULL, quarter=NULL){
+  hatchDay=1
   # check mandatory columns
   if (!(all(c("LiveWeightKG") %in% names(landings)))){
     stop("Column LiveWeightKG is mandatory in landings")
@@ -549,6 +561,16 @@ prepRECA <- function(samples, landings, fixedEffects, randomEffects, carEffect=N
     stop("Some samples are taken from cells not in landings.")
   }
 
+  if (!is.null(hatchDay)){
+    if (hatchDay != 1){
+      # need to consult with NR about documentation. Get weird crashes for some values.
+      stop("HatchDay not properly supported yet.")
+    }
+    if (hatchDay<1 | hatchDay>366){
+      stop("Invalid hatchDay.")
+    }
+  }
+
   covariateMaps <- list()
 
   #covariateMaps common between models (effects in landings)
@@ -614,7 +636,7 @@ prepRECA <- function(samples, landings, fixedEffects, randomEffects, carEffect=N
   # build eca objects
 
   AgeLength <- list()
-  ret <- getDataMatrixAgeLength(samples, nFish)
+  ret <- getDataMatrixAgeLength(samples, nFish, hatchDay)
   AgeLength$DataMatrix <- ret$DataMatrix
   AgeLength$CovariateMatrix <- getCovariateMatrix(samples, c(fixedEffects, randomEffects, carEffect), covariateMaps$inLandings, covariateMaps$randomEffects$AgeLength)
   AgeLength$info <- getInfoMatrix(samples, landings, fixedEffects, randomEffects, carEffect)
@@ -672,7 +694,7 @@ checkEcaObj <- function(RECAobj){
 
   checkGlobalParameters(obj$GlobalParameters, obj$AgeLength, obj$WeightLength)
 
-  return(RECAobj)
+  return(obj)
 }
 
 #' @noRd
@@ -719,7 +741,7 @@ addCellCovariateMap <- function(covariateMap, infoMatrix){
 
 #' Rename R-ECA output
 #' @description Renames output returned from \code{\link[Reca]{eca.estimate}},
-#' so that covariate names and levels correspond to those used in data fed to \code{\link{prepRECA}{prepRECA}}
+#' so that covariate names and levels correspond to those used in data fed to \code{\link[prepRECA]{prepRECA}}
 #' @param fit as returned from \code{\link[Reca]{eca.estimate}},
 #' @param covariateMaps as returned from \code{\link{prepRECA}{prepRECA}}
 #' @param careffect name of careffect
@@ -776,7 +798,7 @@ renameRecaOutput <- function(ecafit, covariateMaps, careffect){
 #' @param fitfile name of output files in resultdir. See documentation for \code{\link[Reca]{eca.estimate}}.
 #' @param predictfile name of output files in resultdir. See documentation for \code{\link[Reca]{eca.predict}}.
 #' @param resultdir a directory where Reca may store temp-files \code{\link[Reca]{eca.estimate}} and \code{\link[Reca]{eca.predict}}. . If NULL, a temporary directory will be created. See documentation for \code{\link[Reca]{eca.estimate}}.
-#' @param thin see documentation for \code{\link[Reca]{eca.estimate}}
+#' @param thin controls how many iterations are run between each samples saved. This may be set to account for autocorrelation introduced by Metropolis-Hastings simulation. see documentation for \code{\link[Reca]{eca.estimate}}
 #' @param delta.age see documentation for \code{\link[Reca]{eca.estimate}}
 #' @param seed see documentation for \code{\link[Reca]{eca.estimate}}
 #' @param caa.burnin see documentation for \code{\link[Reca]{eca.predict}}
@@ -787,7 +809,7 @@ renameRecaOutput <- function(ecafit, covariateMaps, careffect){
 #'  \item{covariateMaps}{list() mapping from Reca covariate encoding to values fed to \code{\link[prepRECA]{prepRECA}}. As on parameter 'RecaObj'}
 #' }
 #' @export
-runRECA <- function(RecaObj, nSamples, burnin, lgamodel="log-linear", fitfile="fit", predictfile="pred", resultdir=NULL, thin=1, delta.age=0.001, seed=NULL, caa.burnin=0){
+runRECA <- function(RecaObj, nSamples, burnin, lgamodel="log-linear", fitfile="fit", predictfile="pred", resultdir=NULL, thin=10, delta.age=0.001, seed=NULL, caa.burnin=0){
 
   if (is.null(resultdir)){
     fpath <- file.path(tempdir(), "Recadir")

@@ -22,29 +22,50 @@ library(prepRECA)
 ## Preparing data for Catch At Age estimation
 This packages contains functions for preparing data for Catch At Age estimation, using the package 'Reca'. For common use-cases it takes care of complex data conversion, and facilitates back-conversion when needed.
 
-Reca is provided by the Norwegian Computing Centre, and is available at: https://github.com/NorskRegnesentral/Reca . It implements a Bayesian model for estimating catch at age, and is designed as a component in StoX, an estimation system used at the Institute of Marine Research (IMR) in Norway. Data checks, and data conversion are handled by other StoX components, and are closely tied to the data models supported by StoX. This package is being developed in order to ease adaptation of other data models to Reca, and provides conversion functions and wrapper functions. For purposes of illustration, example data sets from Norwegian port sampling, and aggregated Norwegian sales-notes data is included. These are formatted according to a development version of the data model for the regional data base and estimation system (RDBES). For details see data set documentation:
+Reca is provided by the Norwegian Computing Centre, and is available at: https://github.com/NorskRegnesentral/Reca . It implements a Bayesian model for estimating Aatch At Age, and is designed as a component in StoX, an estimation system used at the Institute of Marine Research (IMR) in Norway. Data checks, and data conversion are handled by other StoX components, and are closely tied to the data models supported by StoX. This package is being developed in order to ease adaptation of other data models to Reca, and provides conversion functions and wrapper functions. For purposes of illustration, example data sets from Norwegian port sampling, and aggregated Norwegian sales-notes data is included. These are formatted according to a development version of the data model for the regional data base and estimation system (RDBES). For details see data set documentation:
 ```{r}
 ?prepRECA::CLCodHadNOR #sales notes
 ?prepRECA::NORportsampling2018 #port sampling
 ```
 
-The key functions for getting configuring and running the model are:
+Because this data format was chosen for the examples, the package also contains a few functions specific to this format.
+
+The key functions for configuring and running the model are:
  * rEcaDataReport
  * prepRECA
  * runRECA
-And the general workflow is to use 'rEcaDataReport' to inspect what model configurations are reasonable for your samples, then use 'prepRECA' to specify model configuration and to convert data to the data format accepted by Reca, before finally running Reca using 'runReca'. In waht follows,  will present an example of such a workflow for estimation of Haddock catches in Norwegian coastal waters.
+ 
+Reca first runs a parameter estimation to estimate the psoterior distribution of parameter values. This is a Metropolis-Hasting simulation. Afterwards it runs a prediction where posterior distributions are sampled to calculate estimates of Total Catch At Age. The results are provided as a distribution of Catch At Age estimates, and can be further inspected and processed to show point estimates, credible intervals etc, using functions in this package:
+ * plotAgeTraces
+ * makeResultTableRECA
+ * plotCatchAtAge
+ 
+The general workflow is to use 'rEcaDataReport' to inspect what model configurations are reasonable for your samples, then use 'prepRECA' to specify model configuration and to convert data to the data format accepted by Reca, before finally running Reca using 'runReca'. In what follows, I will present an example of such a workflow for estimation of Haddock catches in Norwegian coastal waters.
 
 ### Reca model configuration
-...
+
+Reca is an implementation of ECA, a Bayesian Framework for estimating catch age age, descirbed in Hirst et al. (2004, 2005 and 2012). Briefly, fisheries are broken down into cells, for which total landings can be obtained (via sales-notes or similar census), and for which appropriate meta-information is available for allocating samples to cells. The covariates that define the cells are typically Area, Season and Gear, but are configurable in Reca and can sometimes be better defined based on knowledge of the sample designs incorporated. Reca allows covariates beside those defining the cells to be included as random effects if appropriate meta-information is available for the samples used. 
+
+Reca discriminates three kinds of effects for covariates: fixed effect, random effect and CAR-effect (conditional autoregressive effect). The terminology does not correspond directly to the way the terms 'fixed' and 'random' effect are used in frequentialist modelling. The key distinction between the effects is that random effects are modelled in a more complex way, which allows them to be simulated if they are not sampled in some cells. The CAR-effect is a special kind of random effect which allows for additional control for how the covariate is dealt with if it is not sampled in some cells.
+
+In pratical terms, in case not all cells are sampled, Reca allows for modelling cell-covariates as random effects. This typically have little effect on total estimates when samples are only missing in cells with low volume of landings, but should be otherwise be used with caution, and grouping of different covariate values should be considered(e.g. grouping different gears).
+
+The CAR-effect provides a more advanced adaptation to cells not sampled. It requires that some definition of adjacency can be obtained for the covariate modelled as CAR-effect. It is typically used for spatial effects, for instance Area, when it is easy to determine which areas are adjacent.
+
+Additional covariates not in cells must always be configured as random effects.
+
+A reasonable sampling program will sample cells with low volume of landings with low probability. So for a fine-cell structure unsampled cells are to be expected, and deciding on when to group and when to configure are commonly the most important tasks of configuring the model.
 
 ### inspecting data
-rEcaDataReport expect samples formatted as a data table (package data.table), with one row for each fish, and landings formated as a data table with the total landings partioned over the rows, with columns identifying meta-information. For both landings and samples, some specific columns are also required (see ?rEcaDataReport). The example sales-notes already conform to this expectation, but the samples are provided in a hiearchical format, with one table for different part of the hiearchical sampling. We need to first convert this to a flat table. For estimation with Reca, zero-samples are not important, so we start by restricting or samples to those with Haddock present (samples are represented by the RDBES SA-table):
+In order to decide how to configure the model, we need to inspect the data. This package provides the function 'rEcaDataReport' for that purpose.
+
+rEcaDataReport expect samples formatted as a data table (package data.table) with one row for each fish, and landings formated as a data table with the total landings partioned over the rows, with columns identifying the desired cell definition. For both landings and samples, some specific columns are also required (see ?rEcaDataReport). The example sales-notes already almsot conform to this expectation, but the samples are provided in a hiearchical format, with one table for different part of the hiearchical sampling. We need to first convert this to a flat table. For estimation with Reca, zero-samples are not important, so we start by restricting or samples to those with Haddock present (samples are represented by the RDBES SA-table):
 ```{r}
   # select samples of target species, aphia code for haddock is 126437
   SA <- prepRECA::NORportsampling2018$SA[prepRECA::NORportsampling2018$SA$SAsppCode == "126437",]
 ```
 
-Fish measurements are coded in the RDBES BV-table for our samples, so we need to extract those. This package provides a function for that, which is design to deal with the RDBES data model (v 1.17):
+Fish measurements are coded in the RDBES BV-table for our samples (RDBES data model v 1.17), so we need to extract those. This package provides a function for that:
 ```{r}
   # extract biological measurements corresponding to the selected samples
   BV <- prepRECA::NORportsampling2018$BV[prepRECA::NORportsampling2018$BV$SAid %in% SA$SAid,]
@@ -57,7 +78,7 @@ table(BV$BVunitVal)
 table(SA$SApres)
 ```
 
-Has heterogenoeus presentation of fish. Weight is an auxiliary variable, that Reca does not necesarily require complete observations of, so I'll try removing weights of gutted fish for the sake of this example:
+We have heterogenoeus presentation of fish. Weight is an auxiliary variable, that Reca does not necesarily require complete observations of, so I'll try removing weights of gutted fish for the sake of this example:
 ```{r}
 samples[samples$SApres == "Gutted", "Weight"] <- NA
 ```
@@ -67,7 +88,6 @@ We note that weights and lengths are given in grams and mm. Reca expects kg and 
 samples$Weight <- samples$Weight / 1000
 samples$Length <- samples$Length / 10
 ```
-
 
 
 Then we merge in information from the rest of the hiearchy:
@@ -95,7 +115,6 @@ This sampling program covers almost exclusively day-catches, so sampling date is
  samples$date <- samples$OSsamDate
 ```
 
-
 The data table 'samples' now represent our samples of Haddock from the portsampling program in 2018, in a format that conforms to 'rEcaDataReport'. For the landings (sales-notes), we only have to filter by species, and for the population of catches we want to estimate for (which will be Gillnet, Longline and Demershal Seining) in area 27.2.a and 27.1.b. This is a coarse approximation to the sampling frame for this program:
 ```{r}
  landings <- prepRECA::CLCodHadNOR
@@ -109,7 +128,7 @@ The data table 'samples' now represent our samples of Haddock from the portsampl
  landings$LiveWeightKG <- landings$OfficialLandingsWeight
 ```
 
-The data table 'landings' now represent the total landings of Haddock from Norwegian vessels in 2018, in a format that conforms to 'rEcaDataReport'. Now, we want to run 'rEcaDataReport' to see which columns in landings can represent Reca-cells, which should be modelled as random effects, and which should be fixed effects, and which columns in 'samples' may serve as additional covariates. 'rEcaDataReport' does however also expect that columns that represent the same in samples and landings are named and formatted equally. So we have to inspect how information is coded for columns we are interested in, and see if such correspondances exists, and if any can be made. First we check that no columns match without actually representing the same:
+The data table 'landings' now represent the total landings of Haddock from Norwegian vessels in 2018 for the gear and areas described above, in a format that conforms to 'rEcaDataReport'. Now, we want to run 'rEcaDataReport' to see which columns in landings can represent Reca-cells, which should be modelled as random effects, and which should be fixed effects, and which columns in 'samples' may serve as additional covariates. 'rEcaDataReport' does however also expect that columns that represent the same in samples and landings are named and formatted equally. So we have to inspect how information is coded for columns we are interested in, and see if such correspondances exists, and if any can be made. First we check that no columns match without actually representing the same:
 ```{r}
 any(names(samples) %in% names(landings))
 ```
@@ -187,14 +206,16 @@ prepRECA::rEcaDataReport(samples, landings, c("area", "quarter", "metier5"))
 Remaining issues are now in cells with low volume of landings. I will deal with these by configuring quarter as a random effect.
 We can then proceed to preparing the data for Reca:
 
-### checking and converting data
+### converting data and running Reca
 
-...
-```{r, error=T}
+In order to prepare data for Reca, we run the function 'prepRECA'. In addition to converting data, it provides some data checks, and will give an error on our first attempt:
+```{r error=T}
 recaObj <- prepRECA::prepRECA(samples, landings, fixedEffects = c("area", "metier5"), randomEffects = c("quarter"), NULL, minAge = 1, maxAge = 20, lengthResolution = 1, quarter = landings$Quarter)
 ```
 
-...
+This error arises because there are a few catches in the data which are sampled several times. In such cases Reca needs an estimate of how many fish each of these samples represent. This is only needed for catches that are sampled more than once (otherwise Reca assumes sample is representative of entire catch), and is therefore supported by passing the fish count estimates as an optinal argument.
+
+In this case these are not replicate samples, but reflect some kind of undocumented stratification, with estimated total weights for each strata coded in the column 'SAtotalWtLive'. I will provide an estimate for all samples, even if it is not needed for more than a few:
 
 ```{r}
 meanWeights <- aggregate(list(meanweight=samples$Weight), by=list(sampleId=samples$sampleId), FUN=mean, na.rm=T)
@@ -204,27 +225,24 @@ nFish$SAtotalWtLive <- NULL
 nFish$meanweight <- NULL
 ```
 
-...
-
+We can then try prepRECA again:
 ```{r}
 recaObj <- prepRECA::prepRECA(samples, landings, fixedEffects = c("area", "metier5"), randomEffects = c("quarter"), NULL, minAge = 1, maxAge = 20, lengthResolution = 1, quarter = landings$Quarter, nFish = nFish)
 ```
 
-...
-
-
-```{r, warning=T}
-recaResult <- runRECA(recaObj, nSamples=1000, burnin = 5000)
+We can then proceed to run Reca:
+```{r warning=T}
+recaResult <- runRECA(recaObj, nSamples=500, burnin = 5000)
 ```
 
-...
+### Process results
 
+To inspect the result in tabular form, we run 'makeResultTableRECA:
 ```{r}
 makeResultTableRECA(recaResult$prediction)
 ```
 
-...
-
+Before spending too much time interpreting the result, we should inspect for signs of non-convergence. One way of doing that is to look at the traces of the simulation. These are run after prediction, and should preferably look like independent random samples from the distribution. Based on the table above, I will group ages 12 and up in one group.:
 ```{r}
 plotAgeTraces(recaResult$prediction, plusGroup = 12)
 ```
@@ -241,3 +259,7 @@ makeResultTableRECA(recaResult$prediction, plusGroup = 12)
 plotCatchAtAge(recaResult$prediction, plusGroup = 12, title="Catch At Age, Haddock example, 95% CI")
 ```
 
+## References
+ * Hirst, D., Aanes, S., Storvik, G., Huseby, R. B., & Tvete, I. F. (2004). Estimating catch at age from market sampling data by using a Bayesian hierarchical model. Journal of the Royal Statistical Society: Series C (Applied Statistics), 53(1), 1–14. http://doi.org/10.1111/j.1467-9876.2004.00422.x
+ * Hirst, D., Storvik, G., Aldrin, M., Aanes, S., & Huseby, R. B. (2005). Estimating catch-at-age by combining data from different sources. Canadian Journal of Fisheries and Aquatic Sciences. http://doi.org/10.1139/f05-026
+ * Hirst, D., Storvik, G., Rognebakke, H., Aldrin, M., Aanes, S., & Helge, V. (2012). A Bayesian modelling framework for the estimation of catch-at-age of commercially harvested fish species. Canadian Journal of Fisheries and Aquatic Sciences, 69(12), 2064–2076. http://doi.org/10.1139/cjfas-2012-0075

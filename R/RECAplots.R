@@ -134,9 +134,9 @@ makeResultTableRECA <- function(prediction, unit="millions", plusGroup=NULL, alp
 
 #' Catch at age traces
 #' @description
-#'  Compiles traces for age groups. That is the value for total catch at age in each iteration of \code{\link{Reca}{eca.predict}}
+#'  Compiles traces for age groups. That is the value for total catch at age in each iteration of \code{\link[Reca]{eca.predict}}
 #' @details
-#'  The number of iterations of \code{\link{Reca}{eca.predict}}
+#'  The number of iterations of \code{\link[Reca]{eca.predict}}
 #'  is determined by the parameter 'nSamples' to \code{\link[Reca]{eca.estimate}} or \code{\link[prepRECA]{runRECA}}
 #'  and the parameter 'caa.burnin' (different from parameter 'burnin') to \code{\link[Reca]{eca.predict}} or \code{\link[prepRECA]{runRECA}}
 #'
@@ -204,9 +204,9 @@ plotCatchAtAge <- function(prediction, unit="millions", plusGroup=NULL, credibil
 
 #' Traceplot
 #' @description
-#'  Plots a paneled plot with traces for age groups. That is the value for total catch at age in each iteration of \code{\link{Reca}{eca.predict}}
+#'  Plots a paneled plot with traces for age groups. That is the value for total catch at age in each iteration of \code{\link[Reca]{eca.predict}}
 #' @details
-#'  The number of iterations of \code{\link{Reca}{eca.predict}}
+#'  The number of iterations of \code{\link[Reca]{eca.predict}}
 #'  is determined by the parameter 'nSamples' to \code{\link[Reca]{eca.estimate}} or \code{\link[prepRECA]{runRECA}}
 #'  and the parameter 'caa.burnin' (different from parameter 'burnin') to \code{\link[Reca]{eca.predict}} or \code{\link[prepRECA]{runRECA}}
 #'
@@ -228,7 +228,7 @@ plotCatchAtAge <- function(prediction, unit="millions", plusGroup=NULL, credibil
 #' @param plusGroup Fish this age or older will be grouped in one trace.
 #' @param nclust the number of plots to distribute the ages and plus group on
 #' @param iter.max maximal number of iterations for k-means clustering deciding which ages are ploted in same plot.
-#' @param nstarts the number of random sets chosen for the k-means clustering
+#' @param nstart the number of random sets chosen for the k-means clustering
 #' @param agecolors named vector matching ages to colors, if null a default color scheme is used
 #' @param lowerquant lower quantile in each age group to plot as points
 #' @param upperquant upper quantile in each age group to plot as points

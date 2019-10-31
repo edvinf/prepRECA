@@ -1,6 +1,6 @@
 
 #
-# Too slow to run as unit tests. Run manually
+# Too slow to run as unit tests. Build and install. Then run manually
 #
 
 SA <- prepRECA::NORportsampling2018$SA[prepRECA::NORportsampling2018$SA$SAsppCode == "126436",]
@@ -35,10 +35,13 @@ landings$gear <- landings$FishingActivityCategoryEuropeanLvl5
 landings$LiveWeightKG <- landings$OfficialLandingsWeight
 landings$quarter <- paste("Q", landings$Quarter, sep="")
 
+# try with hatchday
+#RECAobj <- prepRECA::prepRECA(fishdata[1:100,], landings, NULL, c("Metier5", "vessel"), NULL, neighbours = NULL, quarter=landings$Quarter, nFish = NULL, hatchDay=90)
+#prepRECA::runRECA(RECAobj,100,100)
+
 # try with nfish
 RECAobj <- prepRECA::prepRECA(fishdata, landings, NULL, c("Metier5", "vessel"), NULL, neighbours = NULL, quarter=landings$Quarter, nFish = NULL)
 prepRECA::runRECA(RECAobj,100,100)
-stop()
 
 #s<-load("~/code/github/Rstox_utils/Work/testfiles/herring_2015_tempfixed_gearrandom_100samples.Rdata")
 # check if partnumber matters
@@ -63,6 +66,7 @@ prepRECA::runRECA(RECAobj,100,100)
 # try without partcounts
 RECAobj <- prepRECA::prepRECA(fishdata[1:100,], landings, NULL, c("Metier5", "vessel"), NULL, neighbours = NULL, quarter=landings$Quarter, nFish = NULL)
 prepRECA::runRECA(RECAobj,100,100)
+
 
 #try with CAR
 neighbours <- list()
