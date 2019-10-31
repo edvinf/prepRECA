@@ -289,7 +289,7 @@ plotAgeTraces <- function(prediction, unit="millions", plusGroup=NULL, nclust=4,
     mcp <- m[m$age %in% ages[clust$cluster==i],]
     maxy <- max(mcp[unit]) + max(mcp[unit])*.1
     if (sum(clust$cluster==i)<=catlimit){
-      mcp$age <- mcp$age
+      mcp$age <- as.factor(mcp$age)
       plots[[plotnr]]<-ggplot2::ggplot(data=mcp, ggplot2::aes_string(x="iteration", y=unit, group="age"))+ggplot2::geom_line(data=mcp, ggplot2::aes(color=age)) + ggplot2::geom_point(data=mcp[mcp[unit] > mcp$uq | mcp[unit] < mcp$lq,], ggplot2::aes(color=age)) + ggplot2::scale_color_manual(values = agecolors) + ggplot2::ylim(0,maxy)
     }
     else{
