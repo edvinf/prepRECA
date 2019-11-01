@@ -930,10 +930,13 @@ runRECA <- function(RecaObj, nSamples, burnin, lgamodel="log-linear", fitfile="f
 #'  \item{Nlength}{The number of fish length measurements in the cell.}
 #' }
 #' @examples
-#'  samples <- extractBV(prepRECA::NORportsampling2018$BV, c("Age", "Length", "Weight"), c("integer", "numeric", "numeric"))
+#'  samples <- extractBV(prepRECA::NORportsampling2018$BV,
+#'      c("Age", "Length", "Weight"),
+#'      c("integer", "numeric", "numeric"))
 #'  samples <- merge(samples, prepRECA::NORportsampling2018$SA, by="SAid")
 #'  samples <- merge(samples, prepRECA::NORportsampling2018$SS, by="SSid")
-#'  samples <- merge(samples, prepRECA::NORportsampling2018$LE, by="LEid", suffixes = c("", ".LE"))
+#'  samples <- merge(samples, prepRECA::NORportsampling2018$LE, by="LEid",
+#'      suffixes = c("", ".LE"))
 #'  samples <- merge(samples, prepRECA::NORportsampling2018$VD, by="VDid")
 #'  samples$catchId <- samples$LEid
 #'  samples$sampleId <- samples$SAid

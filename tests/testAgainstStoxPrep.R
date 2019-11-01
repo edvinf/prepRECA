@@ -1,4 +1,5 @@
 library(prepRECA)
+library(data.table)
 stoxRobj <- readRDS(system.file(package = "prepRECA", "testresources", "stoxprepreca"))
 
 samples <- data.table(catchId = as.character(stoxRobj$StoxExport$biotic$serialnumber),
