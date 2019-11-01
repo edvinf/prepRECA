@@ -3,7 +3,7 @@ library(data.table)
 stoxRobj <- readRDS(system.file(package = "prepRECA", "testresources", "stoxprepreca"))
 
 samples <- data.table(catchId = as.character(stoxRobj$StoxExport$biotic$serialnumber),
-                      sampleId = paste(stoxRobj$StoxExport$biotic$serialnumber, stoxRobj$StoxExport$biotic$$catchpartnumber, sep="/"),
+                      sampleId = paste(stoxRobj$StoxExport$biotic$serialnumber, stoxRobj$StoxExport$biotic$catchpartnumber, sep="/"),
                       date = as.POSIXct(stoxRobj$StoxExport$biotic$stationstartdate),
                       Age = stoxRobj$StoxExport$biotic$age,
                       Length = stoxRobj$StoxExport$biotic$lengthcentimeter,
@@ -28,5 +28,8 @@ stoxRobj$GlobalParameters$CC = F
 stoxRobj$GlobalParameters$CCerror = F
 stoxRecaResults <- prepRECA::runRECA(stoxRobj, 400, 400, seed=42, thin=1)
 
-prepRECA::plotCatchAtAge(prepRecaResults$prediction, title="RecaPrep results")
-prepRECA::plotCatchAtAge(stoxRecaResults$prediction, title="StoxPrep results")
+tabPrep <- prepRECA::makeResultTableRECA(prepRecaResults$prediction, title="RecaPrep results")
+tabStox <- prepRECA::makeResultTableRECA(stoxRecaResults$prediction, title="StoxPrep results")
+
+#prepRECA::plotCatchAtAge(prepRecaResults$prediction, title="RecaPrep results")
+#prepRECA::plotCatchAtAge(stoxRecaResults$prediction, title="StoxPrep results")
