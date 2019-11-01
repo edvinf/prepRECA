@@ -46,7 +46,6 @@ stopifnot(all(nocovFixedSeed1$prediction$TotalCount == nocovFixedSeed2$predictio
 stopifnot(!all(nocov$prediction$TotalCount == nocovFixedSeed1$prediction$TotalCount))
 #stopifnot(!all(nocov$prediction$TotalCount == nocov2$prediction$TotalCount)) #stil getting default seed ?
 
-stop()
 # try with hatchday
 #RECAobj <- prepRECA::prepRECA(fishdata[1:100,], landings, NULL, c("Metier5", "vessel"), NULL, neighbours = NULL, quarter=landings$Quarter, nFish = NULL, hatchDay=90)
 #prepRECA::runRECA(RECAobj,100,100)

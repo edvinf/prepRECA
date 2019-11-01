@@ -3,7 +3,7 @@ library(data.table)
 stoxRobj <- readRDS(system.file(package = "prepRECA", "testresources", "stoxprepreca"))
 
 samples <- data.table(catchId = as.character(stoxRobj$StoxExport$biotic$serialnumber),
-                      sampleId = paste(stoxRobj$StoxExport$biotic$serialnumber, samples$catchpartnumber, sep="/"),
+                      sampleId = paste(stoxRobj$StoxExport$biotic$serialnumber, stoxRobj$StoxExport$biotic$$catchpartnumber, sep="/"),
                       date = as.POSIXct(stoxRobj$StoxExport$biotic$stationstartdate),
                       Age = stoxRobj$StoxExport$biotic$age,
                       Length = stoxRobj$StoxExport$biotic$lengthcentimeter,
