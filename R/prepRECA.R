@@ -825,6 +825,10 @@ renameRecaOutput <- function(ecafit, covariateMaps, careffect){
 #' @export
 runRECA <- function(RecaObj, nSamples, burnin, lgamodel="log-linear", fitfile="fit", predictfile="pred", resultdir=NULL, thin=10, delta.age=0.001, seed=NULL, caa.burnin=0){
 
+  if (is.null(seed)){
+    seed <- sample.int(.Machine$integer.max, 1)
+  }
+
   if (is.null(resultdir)){
     fpath <- file.path(tempdir(), "Recadir")
     if (dir.exists(fpath)){
@@ -865,6 +869,7 @@ runRECA <- function(RecaObj, nSamples, burnin, lgamodel="log-linear", fitfile="f
       pred <- Reca::eca.predict(RecaObj$AgeLength, RecaObj$WeightLength, RecaObj$Landings, RecaObj$GlobalParameters)
 
       out <- list()
+      out$input <- RecaObj
       out$fit <- fit
       out$prediction <- pred
       out$covariateMaps <- RecaObj$CovariateMaps
