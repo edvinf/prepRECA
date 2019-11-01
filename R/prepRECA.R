@@ -492,6 +492,8 @@ getLandings <- function(landings, covariates, covariateMaps, date=NULL, month=NU
 #' }
 #' @export
 prepRECA <- function(samples, landings, fixedEffects, randomEffects, carEffect=NULL, neighbours=NULL, nFish=NULL, ageError=NULL, minAge=NULL, maxAge=NULL, maxLength=NULL, lengthResolution=NULL, testMax=1000, date=NULL, month=NULL, quarter=NULL){
+  samples <- data.table::as.data.table(samples)
+  landings <- data.table::as.data.table(landings)
   hatchDay=1
   # check mandatory columns
   if (!(all(c("LiveWeightKG") %in% names(landings)))){
@@ -503,11 +505,11 @@ prepRECA <- function(samples, landings, fixedEffects, randomEffects, carEffect=N
 
   # check for NAs
   ins <- c(fixedEffects, randomEffects, carEffect, "Length")
-  if (!all(!is.na(samples[,..ins]))){
+  if (!all(!is.na(samples[, ..ins]))){
     stop("NAs are only allowed for weight and age in samples")
   }
   inl <- c(fixedEffects, randomEffects, carEffect, "LiveWeightKG")[c(fixedEffects, randomEffects, carEffect, "LiveWeightKG") %in% names(landings)]
-  if(!all(!is.na(landings[,..inl]))){
+  if(!all(!is.na(landings[, ..inl]))){
     stop("NAs in landings")
   }
 
