@@ -20,12 +20,12 @@ landings[landings$Month %in% c("07", "08", "09"), "quarter"] <- 3
 landings[landings$Month %in% c("10", "11", "12"), "quarter"] <- 4
 
 prepRecaRobj <- prepRECA::prepRECA(samples, landings, c("temporal"), c("platformfactor"), minAge = 1, maxAge = 20, quarter = landings$quarter)
-prepRecaResults <- prepRECA::runRECA(prepRecaRobj, 400, 400, seed=42)
+prepRecaResults <- prepRECA::runRECA(prepRecaRobj, 400, 400, seed=42, thin=1)
 
 stoxRobj$GlobalParameters$age.error = F
 stoxRobj$GlobalParameters$CC = F
 stoxRobj$GlobalParameters$CCerror = F
-stoxRecaResults <- prepRECA::runRECA(stoxRobj, 400, 400, seed=42)
+stoxRecaResults <- prepRECA::runRECA(stoxRobj, 400, 400, seed=42, thin=1)
 
 prepRECA::plotCatchAtAge(prepRecaResults$prediction, title="RecaPrep results")
 prepRECA::plotCatchAtAge(stoxRecaResults$prediction, title="StoxPrep results")
