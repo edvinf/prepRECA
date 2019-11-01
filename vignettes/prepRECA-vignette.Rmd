@@ -256,6 +256,28 @@ Finally, I extract means and credible intervals, and plot them using 'plotCatchA
 plotCatchAtAge(recaResult$prediction, plusGroup = 12, title="Catch At Age, Haddock example, 95% CI")
 ```
 
+For this particular example, we have run Reca for a single sampling program, for an approximately correct sampling frame. That does not do the problem justice, as one commonly have to provide estimates beyond our sampling frame as well. For this purpose, Reca admits samples from different sampling programs, with covariates configured for the clustering introduced by each (e.g. vessel if sampling programs selecting samples by vessels are introduced). 
+
+While the port-sampling analysed here is not strictly probabilistic, it is intended to give approximately random access to catches in the sampling frame, through expert judgement sampling. I am therefore curious about how the results would look, if we merged all cells and run with only the non-configurable cathc / haul as covariate:
+
+```{r}
+recaObjNoCells <- prepRECA::prepRECA(samples, landings, NULL, NULL, NULL, minAge = 1, maxAge = 20, lengthResolution = 1, quarter = landings$Quarter, nFish = nFish)
+recaResultNoCells <- runRECA(recaObjNoCells, nSamples=500, burnin = 5000)
+
+```
+
+```{r}
+plotAgeTraces(recaResultNoCells$prediction, plusGroup = 12, nclust = 6)
+```
+Because the results were a bit hard to see, I have increased the number of plots used for the trace-inspection here.
+
+```{r}
+plotCatchAtAge(recaResultNoCells$prediction, plusGroup = 12, title="Catch At Age, Haddock no-cells, 95% CI")
+```
+
+The overall impression from this simpler analysis is in quite good agreement with the one with proper cell definitions.
+
+
 ## References
  * Hirst, D., Aanes, S., Storvik, G., Huseby, R. B., & Tvete, I. F. (2004). Estimating catch at age from market sampling data by using a Bayesian hierarchical model. Journal of the Royal Statistical Society: Series C (Applied Statistics), 53(1), 1–14. http://doi.org/10.1111/j.1467-9876.2004.00422.x
  * Hirst, D., Storvik, G., Aldrin, M., Aanes, S., & Huseby, R. B. (2005). Estimating catch-at-age by combining data from different sources. Canadian Journal of Fisheries and Aquatic Sciences. http://doi.org/10.1139/f05-026
