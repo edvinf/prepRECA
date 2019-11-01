@@ -35,6 +35,11 @@ landings$gear <- landings$FishingActivityCategoryEuropeanLvl5
 landings$LiveWeightKG <- landings$OfficialLandingsWeight
 landings$quarter <- paste("Q", landings$Quarter, sep="")
 
+
+# try with no covariates
+RECAobj <- prepRECA::prepRECA(fishdata, landings, fixedEffects = NULL, randomEffects = NULL, NULL, minAge = 1, maxAge = 20, lengthResolution = 1, quarter = landings$Quarter, nFish = nFish)
+prepRECA::runRECA(RECAobj,100,100)
+
 # try with hatchday
 #RECAobj <- prepRECA::prepRECA(fishdata[1:100,], landings, NULL, c("Metier5", "vessel"), NULL, neighbours = NULL, quarter=landings$Quarter, nFish = NULL, hatchDay=90)
 #prepRECA::runRECA(RECAobj,100,100)

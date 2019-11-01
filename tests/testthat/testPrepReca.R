@@ -175,3 +175,10 @@ context("test prepRECA: age error with matrix errors")
 expect_error(prepRECA(fishdata, landings, c("Metier5"), c("vessel"), NULL, month=landings$Month, ageError = ageErr)) #outside age range
 ageErr <- matrix(c(.8,.2,.1,.8), nrow=2, dimnames=list(c(1,2), c(1,2)))
 expect_error( prepRECA(fishdata[is.na(fishdata$Age) | fishdata$Age %in% c(1,2),], landings, c("Metier5"), c("vessel"), NULL, month=landings$Month, ageError = ageErr, minAge=1, maxAge = 2)) # ageError matrix does not sum to 1
+
+context("test prepRECA: no custom covariates")
+recaObj <- prepRECA::prepRECA(fishdata, landings, fixedEffects = NULL, randomEffects = NULL, NULL, minAge = 1, maxAge = 20, lengthResolution = 1, quarter = landings$Quarter, nFish = nFish)
+expect_true(!is.null(recaObj$AgeLength$CovariateMatrix$constant))
+expect_true(!is.null(recaObj$WeightLength$CovariateMatrix$constant))
+expect_true("constant" %in% rownames(recaObj$AgeLength$info))
+expect_true("constant" %in% rownames(recaObj$WeightLength$info))

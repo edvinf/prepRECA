@@ -102,6 +102,7 @@ getCovariateMap <- function(covariate, samples, landings){
 #' order columns by constant, inlandings, notinlandings (inlandings and notinalndings sorted alphabetically)
 #' @noRd
 getInfoMatrix <- function(samples, landings, fixedEffects, randomEffects, carEffect){
+
   info <- matrix(ncol=7, nrow=length(c(fixedEffects, randomEffects, carEffect))+1)
   colnames(info) <- c("random", "CAR", "continuous", "in.landings", "nlev", "interaction", "in.slopeModel")
   rownames(info) <- c("constant", c(fixedEffects, randomEffects, carEffect))
@@ -147,6 +148,15 @@ getInfoMatrix <- function(samples, landings, fixedEffects, randomEffects, carEff
 
   ord <- c("constant", inlandings, notinlandings)
   info <- info[match(ord, rownames(info)),]
+
+  if (is.null(dim(info))){
+    cn <- names(info)
+    stopifnot(length(ord) == 1)
+    dim(info) <- c(1, length(info))
+    rownames(info) <- ord
+    colnames(info) <- cn
+  }
+
   return(info)
 }
 
