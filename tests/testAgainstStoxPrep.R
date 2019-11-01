@@ -28,8 +28,8 @@ stoxRobj$GlobalParameters$CC = F
 stoxRobj$GlobalParameters$CCerror = F
 stoxRecaResults <- prepRECA::runRECA(stoxRobj, 400, 400, seed=42, thin=1)
 
-tabPrep <- prepRECA::makeResultTableRECA(prepRecaResults$prediction, title="RecaPrep results")
-tabStox <- prepRECA::makeResultTableRECA(stoxRecaResults$prediction, title="StoxPrep results")
+tabPrep <- prepRECA::makeResultTableRECA(prepRecaResults$prediction)
+tabStox <- prepRECA::makeResultTableRECA(stoxRecaResults$prediction)
 
 #prepRECA::plotCatchAtAge(prepRecaResults$prediction, title="RecaPrep results")
 #prepRECA::plotCatchAtAge(stoxRecaResults$prediction, title="StoxPrep results")
