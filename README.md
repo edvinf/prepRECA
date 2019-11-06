@@ -9,3 +9,6 @@ devtools::install_github("https://github.com/NorskRegnesentral/Reca")
 
 install prepRECA using:
 devtools::install_github("https://github.com/edvinf/prepRECA")
+
+in order to build the vignette (tutorial), run with options:
+devtools::install_github("https://github.com/edvinf/prepRECA", build_opts = c("--no-resave-data", "--no-manual"))
